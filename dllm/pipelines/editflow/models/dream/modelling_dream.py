@@ -20,9 +20,7 @@ class EditFlowDreamModel(dream.DreamModel):
     }  # fully fintuned even using lora
 
     def __init__(self, config):
-        # TODO: time embedding
         super().__init__(config)
-        # lm_head = self.lm_head
         in_lm, out_lm = self.lm_head.in_features, self.lm_head.out_features
         use_bias = self.lm_head.bias is not None
         # Create new, independent heads (no deepcopy)
@@ -38,7 +36,6 @@ class EditFlowDreamModel(dream.DreamModel):
         t: torch.Tensor | None = None,
         **kwargs
     ):
-        # TODO: time embedding
         output = super().forward(
             input_ids=input_ids,
             attention_mask=attention_mask,
