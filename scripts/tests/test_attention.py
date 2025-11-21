@@ -1,5 +1,5 @@
 """
-LLaDA / MoE / Dream / RND attention mask invariance tests (compact version)
+LLaDA / MoE / Dream attention mask invariance tests (compact version)
 """
 
 import gc
@@ -73,8 +73,6 @@ def _assert_invariance(outs: dict, tag: str):
         ("GSAI-ML/LLaDA-8B-Base", None, "LLaDA Base"),
         ("inclusionAI/LLaDA-MoE-7B-A1B-Base", None, "LLaDA MoE"),
         ("Dream-org/Dream-v0-Base-7B", None, "Dream Base"),
-        ("radicalnumerics/RND1-Base-0910", None, "RND Base (native)"),
-        ("radicalnumerics/RND1-Base-0910", "sdpa", "RND Base (SDPA)"),
     ],
 )
 def test_attention_mask_invariance(repo, attn_impl, human_name):
@@ -105,40 +103,3 @@ def test_attention_mask_invariance(repo, attn_impl, human_name):
     gc.collect()
     _cuda_cleanup()
 
-
-def test_rnd_native_vs_sdpa_equivalence():
-    """
-    Verify RND (native attention) and RND (SDPA) produce equivalent logits on the
-    same real tokens across A..E variants.
-    """
-    repo = "radicalnumerics/RND1-Base-0910"
-    model_path = dllm.utils.resolve_with_base_env(repo, "BASE_MODELS_DIR")
-
-    # native
-    model_native = transformers.AutoModel.from_pretrained(
-        model_path, dtype=torch.float32, device_map="auto"
-    ).eval()
-
-    # sdpa
-    config_sdpa = transformers.AutoConfig.from_pretrained(
-        model_path, attn_implementation="sdpa"
-    )
-    model_sdpa = transformers.AutoModel.from_pretrained(
-        model_path, config=config_sdpa, dtype=torch.float32, device_map="auto"
-    ).eval()
-
-    outs_native = _forward_variants(model_native)  # expects helper from your file
-    outs_sdpa = _forward_variants(model_sdpa)
-
-    for k in ("A", "B", "C", "D", "E"):
-        assert torch.allclose(
-            outs_native[k], outs_sdpa[k], atol=ERROR_THRESHOLD, rtol=ERROR_THRESHOLD
-        ), f"[RND cross-backend] native vs SDPA mismatch on {k}"
-
-    print(f"✅ RND native vs SDPA equivalence passed within {ERROR_THRESHOLD}.")
-    # Explicitly drop model references
-    del model_native
-    del model_sdpa
-    # Collect Python garbage and release CUDA caches
-    gc.collect()
-    _cuda_cleanup()

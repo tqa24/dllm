@@ -86,7 +86,6 @@ def get_tokenizer(model_args) -> transformers.PreTrainedTokenizer:
     from dllm.pipelines.llada.models.modeling_llada import LLaDAModelLM
     from dllm.pipelines.llada.models.modeling_lladamoe import LLaDAMoEModelLM
     from dllm.pipelines.dream.models.modeling_dream import DreamModel
-    from dllm.pipelines.rnd.models.modeling_rnd import RND1LM
     from transformers import (
         BertPreTrainedModel,
         RobertaPreTrainedModel,
@@ -141,8 +140,6 @@ def get_tokenizer(model_args) -> transformers.PreTrainedTokenizer:
     elif issubclass(model_cls, DreamModel):
         tokenizer.eot_token = "<|im_end|>"
         tokenizer.eot_token_id = tokenizer.convert_tokens_to_ids(tokenizer.eot_token)
-    elif issubclass(model_cls, RND1LM):
-        tokenizer.add_special_tokens({"mask_token": "<|mask|>"})
     elif issubclass(
         model_cls,
         (BertPreTrainedModel, RobertaPreTrainedModel, ModernBertPreTrainedModel),
