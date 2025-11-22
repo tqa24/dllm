@@ -44,6 +44,7 @@ class LLaDAGeneratorConfig(GeneratorConfig):
     stochastic_transfer: bool = False
     cfg_scale: float = 0.0
     cfg_keep_tokens: list[int] | None = None
+    right_shift_logits: bool = False
 
 
 @dataclass
@@ -73,6 +74,7 @@ class LLaDAGenerator(BaseGenerator):
         return_dict_in_generate = kwargs.get(
             "return_dict_in_generate", config.return_dict_in_generate
         )
+        right_shift_logits = kwargs.get("right_shift_logits", config.right_shift_logits)
 
         assert 1 <= block_length
         assert 1 <= steps
@@ -164,6 +166,9 @@ class LLaDAGenerator(BaseGenerator):
                         x, attention_mask=attention_mask
                     ).logits  # Use attention mask here
 
+                if right_shift_logits:
+                    logits = torch.cat([logits[:, :1], logits[:, :-1]], dim=1)
+
                 # Argmax decoding with optional Gumbel-Max noise for exploration
                 logits_with_noise = add_gumbel_noise(logits, temperature=temperature)
                 x0 = torch.argmax(
@@ -243,6 +248,7 @@ class LLaDAGenerator(BaseGenerator):
         return_dict_in_generate = kwargs.get(
             "return_dict_in_generate", config.return_dict_in_generate
         )
+        right_shift_logits = kwargs.get("right_shift_logits", config.right_shift_logits)
 
         mask_id = self.tokenizer.mask_token_id
         eos_id = self.tokenizer.eos_token_id
@@ -332,6 +338,9 @@ class LLaDAGenerator(BaseGenerator):
                     logits = self.model(
                         x, attention_mask=attention_mask
                     ).logits  # Use attention mask here
+
+                if right_shift_logits:
+                    logits = torch.cat([logits[:, :1], logits[:, :-1]], dim=1)
 
                 # Greedy with optional Gumbel-Max noise
                 logits_with_noise = add_gumbel_noise(logits, temperature=temperature)

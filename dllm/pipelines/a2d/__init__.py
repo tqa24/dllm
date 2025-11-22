@@ -14,3 +14,12 @@ from .models.qwen3.modeling_qwen3 import (
     A2DQwen3Config,
     A2DQwen3LMHeadModel,
 )
+
+import transformers
+
+A2D_CONFIG_MAP = {
+    transformers.GPT2Config: A2DGPT2Config,
+    transformers.LlamaConfig: A2DLlamaConfig,
+    transformers.Qwen2Config: A2DQwen2Config,
+    transformers.Qwen3Config: A2DQwen3Config,
+}

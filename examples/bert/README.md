@@ -38,7 +38,7 @@ You can use any BERT model instead for example, by `--model_name_or_path "Facebo
 
 To train [`ModernBERT-large`](https://huggingface.co/answerdotai/ModernBERT-large) on the [`tiny-shakespeare`](https://huggingface.co/datasets/Trelis/tiny-shakespeare) dataset, run:
 ```shell
-accelerate launch --config_file scripts/accelerate_configs/ddp.yaml --num_processes 1 \
+accelerate launch --config_file scripts/accelerate_configs/zero2.yaml --num_processes 1 \
     examples/bert/pt.py \
     --model_name_or_path "answerdotai/ModernBERT-large" \
     --dataset_args "Trelis/tiny-shakespeare" \
@@ -64,7 +64,7 @@ python -u examples/bert/chat.py \
 
 To train [`ModernBERT-large`](https://huggingface.co/answerdotai/ModernBERT-large) on the [`alpaca`](https://huggingface.co/datasets/tatsu-lab/alpaca) dataset, run:
 ```shell
-accelerate launch --config_file scripts/accelerate_configs/ddp.yaml --num_processes 8 \
+accelerate launch --config_file scripts/accelerate_configs/zero2.yaml --num_processes 8 \
     examples/bert/sft.py \
     --model_name_or_path "answerdotai/ModernBERT-large" \
     --dataset_args "tatsu-lab/alpaca" \

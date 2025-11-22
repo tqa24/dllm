@@ -44,7 +44,7 @@ def load_sft_dataset(
             ds = load_dataset_alpaca(dataset_name_or_path)
         elif _match(dataset_name_or_path, "allenai/tulu-3-sft-mixture"):
             ds = load_dataset(dataset_name_or_path)
-            ds = ds["train"].train_test_split(test_size=0.1, seed=42)
+            ds = ds["train"].train_test_split(test_size=0.05, seed=42)
         elif _match(dataset_name_or_path, "HuggingFaceTB/smoltalk"):
             name = kvs.pop("name", "all")
             ds = load_dataset(dataset_name_or_path, name=name)

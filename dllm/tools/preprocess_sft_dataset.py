@@ -3,7 +3,7 @@ Example:
 
 PYTHONPATH=. python dllm/tools/preprocess_sft_dataset.py \
     --model_name_or_path "Dream-org/Dream-v0-Base-7B" \
-    --sft_map_fn_path "examples.dream.sft.sft_map_fn" \
+    --sft_map_fn_path "dllm.utils.ar_mdlm_sft_map_fn" \
     --dataset_args "allenai/tulu-3-sft-mixture" \
     --output_dir "data/sft/dream/tulu-3-sft-mixture" \
     --num_proc 64
@@ -25,7 +25,7 @@ class ScriptArguments:
     """Preprocess SFT dataset"""
 
     model_name_or_path: str = "GSAI-ML/LLaDA-8B-Base"
-    sft_map_fn_path: str = "dllm.utils.default_sft_map_fn"
+    sft_map_fn_path: str = "dllm.utils.default_mdlm_sft_map_fn"
     dataset_args: str = "HuggingFaceTB/smoltalk"  # required
     output_dir: str = "data/sft/llada/smoltalk"  # required
     mask_prompt_loss: bool = True  # Mask prompt tokens in labels with -100

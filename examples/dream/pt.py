@@ -32,6 +32,7 @@ import accelerate
 
 import dllm
 from dllm.pipelines import dream
+
 logger = dllm.utils.get_default_logger(__name__)
 
 
@@ -66,7 +67,7 @@ class DataArguments(dllm.utils.DataArguments):
 @dataclass
 class TrainingArguments(dllm.utils.TrainingArguments):
     output_dir: str = (
-        "models/Dream-7B-PT/dclm-baseline-1.0[train:10_000_000,test:10_000]"
+        "models/Dream-v0-Base-7B/dclm-baseline-1.0[train:10_000_000,test:10_000]"
     )
     learning_rate: float = 3e-4
     max_steps: int = 2_000

@@ -191,7 +191,7 @@ class NoAttentionMaskCollator(transformers.DataCollatorForSeq2Seq):
         return outputs
 
 
-def default_sft_map_fn(row, *, tokenizer, mask_prompt_loss: bool = True) -> dict:
+def default_mdlm_sft_map_fn(row, *, tokenizer, mask_prompt_loss: bool = True) -> dict:
     """
     Build input_ids and labels for SFT.
 
@@ -220,3 +220,32 @@ def default_sft_map_fn(row, *, tokenizer, mask_prompt_loss: bool = True) -> dict
         }
 
     return {"input_ids": prompt_response_tokens, "labels": labels}
+
+
+def rsl_mdlm_sft_map_fn(row, *, tokenizer, mask_prompt_loss: bool) -> dict:
+    # right_shift_logits
+    prompt_tokens = tokenizer.apply_chat_template(
+        row["messages"][:-1], tokenize=True, add_generation_prompt=True
+    )
+    prompt_response_tokens = tokenizer.apply_chat_template(
+        row["messages"], tokenize=True, add_generation_prompt=False
+    )
+    labels = prompt_response_tokens.copy()
+
+    if mask_prompt_loss:
+        labels[: len(prompt_tokens)] = [-100] * len(prompt_tokens)
+    else:
+        # When training on all tokens, prepend a BOS token (if missing)
+        # so the model can predict the first token.
+        if prompt_response_tokens[0] != tokenizer.bos_token_id:
+            bos = [tokenizer.bos_token_id]
+            prompt_response_tokens = bos + prompt_response_tokens
+            prompt_tokens = bos + prompt_tokens
+            labels = bos + labels
+        labels[0] = -100  # ignore loss on BOS
+
+    return {
+        "input_ids": prompt_response_tokens,
+        "labels": labels,
+        "prompt_len": len(prompt_tokens),
+    }

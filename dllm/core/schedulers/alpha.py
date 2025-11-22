@@ -65,7 +65,7 @@ class BaseAlphaScheduler:
 
     def weight(self, i: Number) -> Number:
         # w(t) = - α'(t) / (1 - α(t))
-        return - self.alpha_derivative(i) / (1 - self.alpha(i) + 1e-6)
+        return -self.alpha_derivative(i) / (1 - self.alpha(i) + 1e-6)
 
     # ---- hooks implemented by subclasses ----
     def _alpha(self, i: torch.Tensor) -> torch.Tensor:

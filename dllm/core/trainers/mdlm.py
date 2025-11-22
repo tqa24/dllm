@@ -18,6 +18,7 @@ class MDLMTrainer(transformers.Trainer):
         scheduler: BaseAlphaScheduler | None = None,
         time_epsilon: float = 1e-3,
         loss_weight_type: str = "scheduler",  # "ones"
+        right_shift_logits: bool = False,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -26,12 +27,17 @@ class MDLMTrainer(transformers.Trainer):
             raise ValueError("time_epsilon must be in (0, 1)")
         self.time_epsilon = time_epsilon
         self.loss_weight_type = loss_weight_type
+        self.right_shift_logits = right_shift_logits
 
     def _preprocess_inputs(self, inputs):
-        pass
+        if self.right_shift_logits:
+            labels = inputs["labels"]
+            assert (labels[:, 0] == -100).all()
 
     def _postprocess_outputs(self, outputs):
-        pass
+        if self.right_shift_logits:
+            logits = outputs.logits
+            outputs.logits = torch.cat([logits[:, :1], logits[:, :-1]], dim=1)
 
     def _compute_loss_weights(
         self,
@@ -138,14 +144,3 @@ class MDLMTrainer(transformers.Trainer):
 
         # === 8. Return final loss (and optionally model outputs) ===
         return (loss, outputs) if return_outputs else loss
-
-
-class A2DMDLMTrainer(MDLMTrainer):
-
-    def _preprocess_inputs(self, inputs):
-        labels = inputs["labels"]
-        assert (labels[:, 0] == -100).all()
-
-    def _postprocess_outputs(self, outputs):
-        logits = outputs.logits
-        outputs.logits = torch.cat([logits[:, :1], logits[:, :-1]], dim=1)

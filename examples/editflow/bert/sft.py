@@ -20,7 +20,7 @@ class DataArguments(editflow_sft.DataArguments):
 
 @dataclass
 class TrainingArguments(editflow_sft.TrainingArguments):
-    output_dir: str = "models/EditFlow/ModernBERT-large/alpaca"
+    output_dir: str = "models/editflow/ModernBERT-large/alpaca"
     num_train_epochs: float = 20
     learning_rate: float = 3e-4
     per_device_train_batch_size: int = 64

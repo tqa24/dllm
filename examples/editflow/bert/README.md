@@ -24,13 +24,13 @@ PYTHONPATH=. accelerate launch --config_file scripts/accelerate_configs/ddp.yaml
     --per_device_eval_batch_size 64 \
     --save_steps 0.1 \
     --x0_sampler "masks[length:64]" \
-    --output_dir "models/EditFlow/ModernBERT-large/tiny-shakespeare"
+    --output_dir "models/editflow/ModernBERT-large/tiny-shakespeare"
 ```
 
 To run inference with the model:
 ```shell
 PYTHONPATH=. python examples/editflow/generate.py \
-    --model_name_or_path "models/EditFlow/ModernBERT-large/tiny-shakespeare/checkpoint-final" \
+    --model_name_or_path "models/editflow/ModernBERT-large/tiny-shakespeare/checkpoint-final" \
     --tau 0.01 --mask_length 64 --seed 42 --make_gif
 
 # see `decode_trace.gif`
@@ -50,13 +50,13 @@ PYTHONPATH=. accelerate launch --config_file scripts/accelerate_configs/zero2.ya
     --per_device_eval_batch_size 64 \
     --save_steps 0.1 \
     --x0_sampler "masks[length:64]" \
-    --output_dir "models/EditFlow/ModernBERT-large/alpaca"
+    --output_dir "models/editflow/ModernBERT-large/alpaca"
 ```
 
 To run inference with the model:
 ```shell
 PYTHONPATH=. python examples/editflow/generate.py \
-    --model_name_or_path "models/EditFlow/ModernBERT-large/alpaca/checkpoint-final" \
+    --model_name_or_path "models/editflow/ModernBERT-large/alpaca/checkpoint-final" \
     --prompt "Could you please write a poem for me?" --tau 0.01 --mask_length 64 --seed 42 --make_gif
 
 # see `decode_trace.gif`
@@ -73,5 +73,5 @@ accelerate launch --config_file scripts/accelerate_configs/zero2.yaml --num_proc
     --per_device_eval_batch_size 48 \
     --save_steps 0.1 \
     --x0_sampler "masks[length:64]" \
-    --output_dir "models/EditFlow/ModernBERT-large/tulu-3-smoltalk/epochs-10-bs-384-len-1024"
+    --output_dir "models/editflow/ModernBERT-large/tulu-3-smoltalk/epochs-10-bs-384-len-1024"
 ``` -->

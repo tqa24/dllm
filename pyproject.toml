@@ -40,6 +40,7 @@ exclude = '''
 (
     (^|/)dllm/pipelines/llada/models(/|$)|
     (^|/)dllm/pipelines/dream/models(/|$)|
+    (^|/)dllm/pipelines/a2d/models(/|$)|
     (^|/)lm-evaluation-harness(/|$)
 )
 '''

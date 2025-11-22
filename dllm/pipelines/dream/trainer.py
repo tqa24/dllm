@@ -49,14 +49,7 @@ class DreamTrainer(MDLMTrainer):
         **kwargs,
     ):
         super().__init__(*args, loss_weight_type=loss_weight_type, **kwargs)
-
-    def _preprocess_inputs(self, inputs):
-        labels = inputs["labels"]
-        assert (labels[:, 0] == -100).all()
-
-    def _postprocess_outputs(self, outputs):
-        logits = outputs.logits
-        outputs.logits = torch.cat([logits[:, :1], logits[:, :-1]], dim=1)
+        self.right_shift_logits = True
 
     def _compute_loss_weights(
         self,

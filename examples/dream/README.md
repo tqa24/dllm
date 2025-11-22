@@ -55,7 +55,7 @@ accelerate launch \
     examples/dream/sft.py \
     --model_name_or_path "Dream-org/Dream-v0-Base-7B" \
     --dataset_args "allenai/tulu-3-sft-mixture" \
-    --output_dir "models/Dream-7B-SFT/tulu-3-sft-mixture" \
+    --output_dir "models/Dream-v0-Base-7B/tulu-3-sft-mixture" \
     --max_length 1024 \
     --num_train_epochs 4 \
     --learning_rate 2e-5
@@ -67,7 +67,7 @@ sbatch --nodes=2 --gres=gpu:8 scripts/train.slurm.sh \
     --script_path "examples/dream/sft.py" \
     --model_name_or_path "Dream-org/Dream-v0-Base-7B" \
     --dataset_args "allenai/tulu-3-sft-mixture" \
-    --output_dir "models/Dream-7B-SFT/tulu-3-sft-mixture" \
+    --output_dir "models/Dream-v0-Base-7B/tulu-3-sft-mixture" \
     --max_length 1024 \
     --num_train_epochs 4 \
     --learning_rate 2e-5
@@ -79,9 +79,9 @@ We tried our best to reproduce [`Dream-v0-Instruct-7B`](https://huggingface.co/D
 
 ```shell
 # preprocessing SFT data (optional, but can avoid redundant preprocessing for multi-node training)
-PYTHONPATH=. python dllm/tools/preprocess_sft_dataset.py \
+python dllm/tools/preprocess_sft_dataset.py \
     --model_name_or_path "Dream-org/Dream-v0-Base-7B" \
-    --sft_map_fn_path "examples.dream.sft.sft_map_fn" \
+    --sft_map_fn_path "dllm.utils.rsl_mdlm_sft_map_fn" \
     --dataset_args "allenai/tulu-3-sft-mixture" \
     --output_dir "data/sft/dream/tulu-3-sft-mixture" \
     --num_proc 64
@@ -93,7 +93,7 @@ sbatch --nodes=24 --gres=gpu:8 scripts/train.slurm.sh \
     --model_name_or_path "Dream-org/Dream-v0-Base-7B" \
     --dataset_args "data/sft/dream/tulu-3-sft-mixture" \
     --load_preprocessed_data True \
-    --output_dir "models/Dream-7B-SFT-tulu3-fsdp-bs4-len2048-ep5-lr1e-5" \
+    --output_dir "models/Dream-v0-Base-7B/tulu-3-sft-mixture/fsdp-bs4-len2048-ep5-lr1e-5" \
     --max_length 2048 \
     --truncation "right" \
     --group_by_length True \
@@ -117,7 +117,7 @@ sbatch --nodes=24 --gres=gpu:8 scripts/train.slurm.sh \
     --script_path "examples/dream/pt.py" \
     --model_name_or_path "Dream-org/Dream-v0-Base-7B" \
     --dataset_args "mlfoundations/dclm-baseline-1.0" \
-    --output_dir "models/Dream-7B-PT/dclm-baseline-1.0" \
+    --output_dir "models/Dream-v0-Base-7B/dclm-baseline-1.0" \
     --max_length 1024 \
     --max_steps 2000 \
     --learning_rate 3e-4

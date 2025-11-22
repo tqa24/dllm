@@ -131,24 +131,24 @@ def _forward_variants(model, use_position_ids: bool) -> Dict[str, torch.Tensor]:
     }
 
     for base_tokens in BASE_TOKEN_SETS:
-        base = torch.tensor([base_tokens], device=device)         # [1,4]
-        pad = torch.tensor([[PAD_TOKEN_ID]], device=device)       # [1,1]
+        base = torch.tensor([base_tokens], device=device)  # [1,4]
+        pad = torch.tensor([[PAD_TOKEN_ID]], device=device)  # [1,1]
 
         # no_padding
-        ids_no_pad = base                                        # [1,4]
-        mask_no_pad = torch.ones_like(ids_no_pad)                # [1,4]
+        ids_no_pad = base  # [1,4]
+        mask_no_pad = torch.ones_like(ids_no_pad)  # [1,4]
 
         # left_padding: [0, t1, t2, t3, t4]
-        ids_left = torch.cat([pad, base], dim=1)                 # [1,5]
+        ids_left = torch.cat([pad, base], dim=1)  # [1,5]
         mask_left = torch.cat(
             [torch.zeros_like(pad), torch.ones_like(base)], dim=1
-        )                                                        # [1,5]
+        )  # [1,5]
 
         # right_padding: [t1, t2, t3, t4, 0]
-        ids_right = torch.cat([base, pad], dim=1)                # [1,5]
+        ids_right = torch.cat([base, pad], dim=1)  # [1,5]
         mask_right = torch.cat(
             [torch.ones_like(base), torch.zeros_like(pad)], dim=1
-        )                                                        # [1,5]
+        )  # [1,5]
 
         # no_mask: attention_mask=None
         ids_no_mask = base
@@ -179,12 +179,16 @@ def _forward_variants(model, use_position_ids: bool) -> Dict[str, torch.Tensor]:
                     input_ids=ids_left,
                     attention_mask=mask_left,
                     position_ids=pos_left,
-                ).logits[:, 1:]  # [1,4,H]
+                ).logits[
+                    :, 1:
+                ]  # [1,4,H]
             else:
                 out_left = model(
                     input_ids=ids_left,
                     attention_mask=mask_left,
-                ).logits[:, 1:]  # [1,4,H]
+                ).logits[
+                    :, 1:
+                ]  # [1,4,H]
 
             # right_padding (ignore last padded position)
             if use_position_ids:
@@ -193,12 +197,16 @@ def _forward_variants(model, use_position_ids: bool) -> Dict[str, torch.Tensor]:
                     input_ids=ids_right,
                     attention_mask=mask_right,
                     position_ids=pos_right,
-                ).logits[:, :-1]  # [1,4,H]
+                ).logits[
+                    :, :-1
+                ]  # [1,4,H]
             else:
                 out_right = model(
                     input_ids=ids_right,
                     attention_mask=mask_right,
-                ).logits[:, :-1]  # [1,4,H]
+                ).logits[
+                    :, :-1
+                ]  # [1,4,H]
 
             # no_mask (attention_mask=None)
             if use_position_ids:
@@ -233,10 +241,7 @@ def _forward_variants(model, use_position_ids: bool) -> Dict[str, torch.Tensor]:
         acc["mask_omitted"].append(out_omitted)
 
     # Concatenate results for each variant along batch axis.
-    outs = {
-        key: torch.cat(tensors, dim=0)  # [N,4,H]
-        for key, tensors in acc.items()
-    }
+    outs = {key: torch.cat(tensors, dim=0) for key, tensors in acc.items()}  # [N,4,H]
     return outs
 
 
@@ -272,7 +277,7 @@ def _forward_batch_nopad(model, use_position_ids: bool) -> torch.Tensor:
     device = _get_model_device(model)
 
     base_batch = torch.tensor(BASE_TOKEN_SETS, device=device)  # [N,4]
-    mask = torch.ones_like(base_batch)                         # [N,4]
+    mask = torch.ones_like(base_batch)  # [N,4]
 
     with torch.no_grad():
         if use_position_ids:
@@ -321,24 +326,24 @@ def _forward_batch_padded(model, use_position_ids: bool) -> torch.Tensor:
     pad_col = torch.full((N, 1), PAD_TOKEN_ID, device=device)  # [N,1]
 
     # Right-padded: [t1..t4, 0]
-    ids_right = torch.cat([base_batch, pad_col], dim=1)        # [N,5]
+    ids_right = torch.cat([base_batch, pad_col], dim=1)  # [N,5]
     mask_right = torch.cat(
         [torch.ones_like(base_batch), torch.zeros_like(pad_col)], dim=1
-    )                                                          # [N,5]
+    )  # [N,5]
 
     # Left-padded: [0, t1..t4]
-    ids_left = torch.cat([pad_col, base_batch], dim=1)         # [N,5]
+    ids_left = torch.cat([pad_col, base_batch], dim=1)  # [N,5]
     mask_left = torch.cat(
         [torch.zeros_like(pad_col), torch.ones_like(base_batch)], dim=1
-    )                                                          # [N,5]
+    )  # [N,5]
 
     # Interleave right/left per base:
     # shape [N, 2, 5] -> reshape to [2N, 5]
-    ids_stacked = torch.stack([ids_right, ids_left], dim=1)    # [N,2,5]
-    mask_stacked = torch.stack([mask_right, mask_left], dim=1) # [N,2,5]
+    ids_stacked = torch.stack([ids_right, ids_left], dim=1)  # [N,2,5]
+    mask_stacked = torch.stack([mask_right, mask_left], dim=1)  # [N,2,5]
 
-    batch_ids = ids_stacked.reshape(-1, ids_stacked.size(-1))   # [2N,5]
-    batch_mask = mask_stacked.reshape(-1, mask_stacked.size(-1))# [2N,5]
+    batch_ids = ids_stacked.reshape(-1, ids_stacked.size(-1))  # [2N,5]
+    batch_mask = mask_stacked.reshape(-1, mask_stacked.size(-1))  # [2N,5]
 
     with torch.no_grad():
         if use_position_ids:
@@ -384,8 +389,7 @@ def _assert_batch_equal_to_single(
             atol=ERROR_THRESHOLD,
             rtol=ERROR_THRESHOLD,
         ), (
-            f"[{tag}] no-pad batch mismatch for base index {i}, "
-            f"tokens={tokens}"
+            f"[{tag}] no-pad batch mismatch for base index {i}, " f"tokens={tokens}"
         )
 
         # 2) Padded batch right-padded row (index 2*i): positions 0..3
@@ -466,10 +470,14 @@ def test_attention_mask_invariance(model_name_or_path, attn_impl, use_position_i
     single_no_pad = outs_single["no_padding"]  # [N,4,H]
 
     # 2) Batch (no padding)
-    batch_nopad = _forward_batch_nopad(model, use_position_ids=use_position_ids)  # [N,4,H]
+    batch_nopad = _forward_batch_nopad(
+        model, use_position_ids=use_position_ids
+    )  # [N,4,H]
 
     # 3) Batch (padded, left+right)
-    batch_padded = _forward_batch_padded(model, use_position_ids=use_position_ids)  # [2N,5,H]
+    batch_padded = _forward_batch_padded(
+        model, use_position_ids=use_position_ids
+    )  # [2N,5,H]
 
     _assert_batch_equal_to_single(
         single_no_pad=single_no_pad,
@@ -497,28 +505,34 @@ def test_attention_mask_invariance(model_name_or_path, attn_impl, use_position_i
         #  dllm.pipelines.a2d.A2DGPT2LMHeadModel,
         #  None,
         #  True),
-        ("meta-llama/Llama-3.2-1B",
-         dllm.pipelines.a2d.A2DLlamaConfig,
-         dllm.pipelines.a2d.A2DLlamaLMHeadModel,
-         None,
-         False),
-        ("Qwen/Qwen2.5-0.5B",
-         dllm.pipelines.a2d.A2DQwen2Config,
-         dllm.pipelines.a2d.A2DQwen2LMHeadModel,
-         None,
-         False),
-        ("Qwen/Qwen3-0.6B-Base",
-         dllm.pipelines.a2d.A2DQwen3Config,
-         dllm.pipelines.a2d.A2DQwen3LMHeadModel,
-         None,
-         False),
+        (
+            "meta-llama/Llama-3.2-1B",
+            dllm.pipelines.a2d.A2DLlamaConfig,
+            dllm.pipelines.a2d.A2DLlamaLMHeadModel,
+            None,
+            False,
+        ),
+        (
+            "Qwen/Qwen2.5-0.5B",
+            dllm.pipelines.a2d.A2DQwen2Config,
+            dllm.pipelines.a2d.A2DQwen2LMHeadModel,
+            None,
+            False,
+        ),
+        (
+            "Qwen/Qwen3-0.6B-Base",
+            dllm.pipelines.a2d.A2DQwen3Config,
+            dllm.pipelines.a2d.A2DQwen3LMHeadModel,
+            None,
+            False,
+        ),
     ],
 )
 def test_a2d_attention_mask_invariance(
     model_name_or_path,
     config_cls,
     model_cls,
-    attn_impl, 
+    attn_impl,
     use_position_ids,
 ):
     """
@@ -548,10 +562,14 @@ def test_a2d_attention_mask_invariance(
     single_no_pad = outs_single["no_padding"]  # [N,4,H]
 
     # 2) Batch (no padding)
-    batch_nopad = _forward_batch_nopad(model, use_position_ids=use_position_ids)  # [N,4,H]
+    batch_nopad = _forward_batch_nopad(
+        model, use_position_ids=use_position_ids
+    )  # [N,4,H]
 
     # 3) Batch (padded, left+right)
-    batch_padded = _forward_batch_padded(model, use_position_ids=use_position_ids)  # [2N,5,H]
+    batch_padded = _forward_batch_padded(
+        model, use_position_ids=use_position_ids
+    )  # [2N,5,H]
 
     _assert_batch_equal_to_single(
         single_no_pad=single_no_pad,
@@ -569,3 +587,45 @@ def test_a2d_attention_mask_invariance(
     del model
     gc.collect()
     _cuda_cleanup()
+
+
+@pytest.mark.parametrize(
+    "model_name_or_path, config_cls, model_cls",
+    [
+        (
+            "meta-llama/Llama-3.2-1B",
+            dllm.pipelines.a2d.A2DLlamaConfig,
+            dllm.pipelines.a2d.A2DLlamaLMHeadModel,
+        ),
+        (
+            "Qwen/Qwen2.5-0.5B",
+            dllm.pipelines.a2d.A2DQwen2Config,
+            dllm.pipelines.a2d.A2DQwen2LMHeadModel,
+        ),
+        (
+            "Qwen/Qwen3-0.6B-Base",
+            dllm.pipelines.a2d.A2DQwen3Config,
+            dllm.pipelines.a2d.A2DQwen3LMHeadModel,
+        ),
+    ],
+)
+def test_a2d_fullmask_future_affects_past(model_name_or_path, config_cls, model_cls):
+    torch.manual_seed(0)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    model_path = dllm.utils.resolve_with_base_env(model_name_or_path, "BASE_MODELS_DIR")
+    config = config_cls.from_pretrained(model_path)
+    model = model_cls(config).to(device).eval()
+
+    a = torch.tensor([[101, 102, 103, 104]], device=device)
+    b = torch.tensor([[101, 102, 999, 104]], device=device)
+
+    with torch.no_grad():
+        la = model(a).logits
+        lb = model(b).logits
+
+    diff = (la[:, 1, :] - lb[:, 1, :]).abs().max().item()
+    assert diff > 1e-5, f"full mask not active, diff={diff}"
+
+    del model
+    torch.cuda.empty_cache()

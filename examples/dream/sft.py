@@ -76,7 +76,9 @@ class DataArguments(dllm.utils.DataArguments):
 
 @dataclass
 class TrainingArguments(dllm.utils.TrainingArguments):
-    output_dir: str = "models/Dream-7B-SFT"
+    output_dir: str = (
+        "models/Dream-v0-Base-7B/tulu-3-sft-mixture[train:10000,test:1000]"
+    )
     group_by_length: bool = True
     # Dream SFT specific args
     loss_weight_type: str = field(
@@ -88,43 +90,6 @@ class TrainingArguments(dllm.utils.TrainingArguments):
             )
         },
     )
-
-
-# ------------------------------------------------------------------------------
-# SFT mapping function
-# ------------------------------------------------------------------------------
-def sft_map_fn(row, *, tokenizer, mask_prompt_loss: bool) -> dict:
-    """
-    Build Dream SFT features from a chat-format row.
-
-    Returns:
-        dict with input_ids, labels, attention_mask, prompt_len
-    """
-    prompt_tokens = tokenizer.apply_chat_template(
-        row["messages"][:-1], tokenize=True, add_generation_prompt=True
-    )
-    prompt_response_tokens = tokenizer.apply_chat_template(
-        row["messages"], tokenize=True, add_generation_prompt=False
-    )
-    labels = prompt_response_tokens.copy()
-
-    if mask_prompt_loss:
-        labels[: len(prompt_tokens)] = [-100] * len(prompt_tokens)
-    else:
-        # When training on all tokens, prepend a BOS token (if missing)
-        # so the model can predict the first token.
-        if prompt_response_tokens[0] != tokenizer.bos_token_id:
-            bos = [tokenizer.bos_token_id]
-            prompt_response_tokens = bos + prompt_response_tokens
-            prompt_tokens = bos + prompt_tokens
-            labels = bos + labels
-        labels[0] = -100  # ignore loss on BOS
-
-    return {
-        "input_ids": prompt_response_tokens,
-        "labels": labels,
-        "prompt_len": len(prompt_tokens),
-    }
 
 
 def train():
@@ -151,7 +116,7 @@ def train():
         )
         if not data_args.load_preprocessed_data:
             map_fn = partial(
-                sft_map_fn,
+                dllm.utils.rsl_mdlm_sft_map_fn,
                 tokenizer=tokenizer,
                 mask_prompt_loss=data_args.mask_prompt_loss,
             )

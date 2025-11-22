@@ -24,7 +24,7 @@ class DataArguments(editflow_pt.DataArguments):
 
 @dataclass
 class TrainingArguments(editflow_pt.TrainingArguments):
-    output_dir: str = "models/EditFlow/ModernBERT-large/tiny-shakespeare"
+    output_dir: str = "models/editflow/ModernBERT-large/tiny-shakespeare"
     num_train_epochs: float = 20
     learning_rate: float = 3e-4
     per_device_train_batch_size: int = 64
