@@ -16,7 +16,7 @@ import transformers
 
 import dllm
 from dllm.pipelines import llada
-from dllm.tools.chat import multi_turn_chat, single_turn_generate
+from dllm.core.generation.chat_utils import multi_turn_chat, single_turn_generate
 
 
 @dataclass
