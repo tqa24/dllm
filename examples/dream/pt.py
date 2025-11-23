@@ -145,11 +145,18 @@ def train():
         eval_dataset=dataset.get("test", None),
         args=training_args,
         loss_weight_type=training_args.loss_weight_type,
-        data_collator=dream.utils.DreamPTCollator(
-            tokenizer,
-            return_tensors="pt",
-            padding=True,
-            random_length_ratio=data_args.random_length_ratio,
+        data_collator=(
+            dllm.utils.PrependBOSWrapper(
+                dllm.utils.RandomTruncateWrapper(
+                    transformers.DataCollatorForSeq2Seq(
+                        tokenizer,
+                        return_tensors="pt",
+                        padding=True,
+                    ),
+                    random_length_ratio=data_args.random_length_ratio,
+                ),
+                bos_token_id=tokenizer.bos_token_id,
+            )
         ),
     )
     trainer.train()

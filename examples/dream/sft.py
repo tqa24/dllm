@@ -116,7 +116,7 @@ def train():
         )
         if not data_args.load_preprocessed_data:
             map_fn = partial(
-                dllm.utils.rsl_mdlm_sft_map_fn,
+                dllm.utils.default_mdlm_sft_map_fn,
                 tokenizer=tokenizer,
                 mask_prompt_loss=data_args.mask_prompt_loss,
             )
@@ -128,6 +128,19 @@ def train():
         # truncate / filter long sequences if needed
         dataset = dllm.utils.post_process_dataset(dataset, data_args)
 
+    # ----- Collator --------------------------------------------------------------
+    data_collator = dream.utils.DreamSFTCollator(
+        tokenizer,
+        return_tensors="pt",
+        padding=True,
+        perbatch_cutoff=data_args.perbatch_cutoff,
+        resp_cutoff_ratio=data_args.resp_cutoff_ratio,
+    )
+    if not data_args.mask_prompt_loss:
+        data_collator = dllm.utils.PrependBOSWrapper(
+            data_collator, bos_token_id=tokenizer.bos_token_id
+        )
+
     # ----- Training --------------------------------------------------------------
     accelerate.PartialState().wait_for_everyone()
     logger.info("Start training...")
@@ -138,13 +151,7 @@ def train():
         eval_dataset=dataset.get("test", None),
         args=training_args,
         loss_weight_type=training_args.loss_weight_type,
-        data_collator=dream.utils.DreamSFTCollator(
-            tokenizer,
-            return_tensors="pt",
-            padding=True,
-            perbatch_cutoff=data_args.perbatch_cutoff,
-            resp_cutoff_ratio=data_args.resp_cutoff_ratio,
-        ),
+        data_collator=data_collator,
     )
     trainer.train()
     trainer.save_model(os.path.join(training_args.output_dir, "checkpoint-final"))

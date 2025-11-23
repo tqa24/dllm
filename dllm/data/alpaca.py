@@ -49,7 +49,7 @@ def load_dataset_alpaca(dataset_name_or_path: str) -> DatasetDict:
         map_fn, remove_columns=dataset["train"].column_names, num_proc=4
     )
     # make train test split
-    dataset = dataset["train"].train_test_split(test_size=0.1, seed=42)
+    dataset = dataset["train"].train_test_split(test_size=0.05, seed=42)
     return dataset
 
 

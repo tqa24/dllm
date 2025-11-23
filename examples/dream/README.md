@@ -81,7 +81,7 @@ We tried our best to reproduce [`Dream-v0-Instruct-7B`](https://huggingface.co/D
 # preprocessing SFT data (optional, but can avoid redundant preprocessing for multi-node training)
 python dllm/tools/preprocess_sft_dataset.py \
     --model_name_or_path "Dream-org/Dream-v0-Base-7B" \
-    --sft_map_fn_path "dllm.utils.rsl_mdlm_sft_map_fn" \
+    --sft_map_fn_path "dllm.utils.default_mdlm_sft_map_fn" \
     --dataset_args "allenai/tulu-3-sft-mixture" \
     --output_dir "data/sft/dream/tulu-3-sft-mixture" \
     --num_proc 64
@@ -95,14 +95,11 @@ sbatch --nodes=24 --gres=gpu:8 scripts/train.slurm.sh \
     --load_preprocessed_data True \
     --output_dir "models/Dream-v0-Base-7B/tulu-3-sft-mixture/fsdp-bs4-len2048-ep5-lr1e-5" \
     --max_length 2048 \
-    --truncation "right" \
-    --group_by_length True \
     --num_train_epochs 5 \
     --learning_rate 1e-5 \
     --per_device_train_batch_size 2 \
     --gradient_accumulation_steps 2 \
     --per_device_eval_batch_size 2 \
-    --eval_on_start False \
     --eval_steps 0.1 \
     --save_steps 0.05
 ```

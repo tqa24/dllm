@@ -1,3 +1,4 @@
+from . import utils
 from .models.gpt2.modeling_gpt2 import (
     A2DGPT2Config,
     A2DGPT2LMHeadModel,

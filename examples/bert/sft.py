@@ -109,11 +109,15 @@ def train():
         train_dataset=dataset["train"],
         eval_dataset=dataset.get("test", None),
         args=training_args,
-        data_collator=dllm.utils.NoAttentionMaskCollator(
-            tokenizer,
-            return_tensors="pt",
-            padding=True,
-            label_pad_token_id=tokenizer.pad_token_id,  # finetune on padding <eos_token>
+        data_collator=(
+            dllm.utils.NoAttentionMaskWrapper(  # padded <eos_token> should be visible
+                transformers.DataCollatorForSeq2Seq(
+                    tokenizer,
+                    return_tensors="pt",
+                    padding=True,
+                    label_pad_token_id=tokenizer.pad_token_id,  # finetune on padded <eos_token>
+                ),
+            )
         ),
     )
     trainer.train()

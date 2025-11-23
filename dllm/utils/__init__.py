@@ -1,5 +1,6 @@
-from . import configs, model_utils, utils
+from . import collators, configs, data, models, utils
 from .configs import *
-from .data_utils import *
-from .model_utils import *
+from .collators import *
+from .data import *
+from .models import *
 from .utils import *

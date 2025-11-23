@@ -128,26 +128,6 @@ def train():
             dataset = dataset.shuffle(seed=training_args.seed)
 
     # ----- Training --------------------------------------------------------------
-    @dataclass
-    class LLaDAPTCollator(transformers.DataCollatorForSeq2Seq):
-        # Reference: https://github.com/ML-GSAI/LLaDA/blob/main/GUIDELINES.md#pre-training
-        # By default, 1% of the pre-training data are truncated to a random length
-        random_length_ratio: float = 0.01
-
-        def __call__(self, features, return_tensors=None):
-            outputs = super().__call__(features, return_tensors)
-            if torch.rand(1) < self.random_length_ratio:
-                random_length = torch.randint(
-                    1, outputs["input_ids"].shape[1] + 1, (1,)
-                )
-                for key in ["input_ids", "labels", "attention_mask"]:
-                    if key in outputs:
-                        outputs[key] = outputs[key][:, :random_length]
-            # Check if attention_mask is all ones and set it to None
-            if torch.all(outputs["attention_mask"] == 1):
-                outputs.pop("attention_mask")
-            return outputs
-
     accelerate.PartialState().wait_for_everyone()
     logger.info("Start training...")
     trainer = dllm.core.trainers.MDLMTrainer(
@@ -156,11 +136,15 @@ def train():
         train_dataset=dataset["train"],
         eval_dataset=dataset.get("test", None),
         args=training_args,
-        data_collator=LLaDAPTCollator(
-            tokenizer,
-            return_tensors="pt",
-            padding=True,
-            random_length_ratio=data_args.random_length_ratio,
+        data_collator=(
+            dllm.utils.RandomTruncateWrapper(
+                transformers.DataCollatorForSeq2Seq(
+                    tokenizer,
+                    return_tensors="pt",
+                    padding=True,
+                ),
+                random_length_ratio=data_args.random_length_ratio,
+            )
         ),
     )
     trainer.train()

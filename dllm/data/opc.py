@@ -53,7 +53,7 @@ def load_dataset_opc_sft(
         train_ds = concatenate_datasets(parts)
 
     # Final split
-    ds_dict = train_ds.train_test_split(test_size=0.1, seed=42)
+    ds_dict = train_ds.train_test_split(test_size=0.05, seed=42)
     if lang is not None:
         ds_dict = ds_dict.filter(lambda row: lang in row["messages"][1]["content"])
 

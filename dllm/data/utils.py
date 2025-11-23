@@ -19,7 +19,7 @@ def load_sft_dataset(
     """
     Examples of dataset_args:
       - "tatsu-lab/alpaca"
-      - "OpenCoder-LLM/opc-sft-stage2[name:educational_instruct]"
+      - "OpenCoder-LLM/opc-sft-stage2[name:educational_instruct,lang:python]"
       - "tatsu-lab/alpaca[train:5000]"
       - "tatsu-lab/alpaca[train:5000] | HuggingFaceH4/ultrachat_200k[train:5000]"
     """
@@ -62,7 +62,7 @@ def load_sft_dataset(
 
         # Normalize to DatasetDict and apply per-split limits
         ds = _ensure_datasetdict(ds)
-        ds = _truncate_dataset(ds, kvs)
+        ds = _truncate_datasetdict(ds, kvs)
         all_parts.append(ds)
 
     # If only one part, return as DatasetDict
@@ -122,61 +122,16 @@ def load_pt_dataset(
 
     # ---------- Streaming path ----------
     def _load_one_streaming_spec(raw: str) -> IterableDatasetDict:
-        base, kvs, dataset_name_or_path = _load_base_dataset(raw, streaming=True)
-
-        split_names = list(base.keys())
-        single_split = len(split_names) == 1
-        single_split_name = split_names[0] if single_split else None
-
-        n_train = kvs.get("train")
-        n_test = kvs.get("test")
-
-        if (n_train is not None) or (n_test is not None):
-            if (n_train is not None) and (n_test is not None):
-                if single_split:
-                    stream = base[single_split_name]
-                    head = stream.take(n_train + n_test)
-                    test = head.take(n_test)
-                    train = head.skip(n_test).take(n_train)
-                    return IterableDatasetDict({"train": train, "test": test})
-                else:
-                    if "train" not in base or "test" not in base:
-                        raise ValueError(
-                            f"{dataset_name_or_path}: require 'train' and 'test' splits for train+test limits."
-                        )
-                    train = base["train"].take(n_train)
-                    test = base["test"].take(n_test)
-                    return IterableDatasetDict({"train": train, "test": test})
-
-            if n_train is not None:
-                if single_split:
-                    train = base[single_split_name].take(n_train)
-                else:
-                    if "train" not in base:
-                        raise ValueError(
-                            f"{dataset_name_or_path}: missing 'train' split for train limit."
-                        )
-                    train = base["train"].take(n_train)
-                return IterableDatasetDict({"train": train})
-
-            if n_test is not None:
-                if single_split:
-                    test = base[single_split_name].take(n_test)
-                else:
-                    if "test" not in base:
-                        raise ValueError(
-                            f"{dataset_name_or_path}: missing 'test' split for test limit."
-                        )
-                    test = base["test"].take(n_test)
-                return IterableDatasetDict({"test": test})
-
-        return base  # already an IterableDatasetDict
+        base, kvs, _ = _load_base_dataset(raw, streaming=True)
+        ds = _ensure_iterabledatasetdict(base)
+        ds = _truncate_iterabledatasetdict(base, kvs)
+        return ds
 
     # ---------- Non-streaming path (mirror load_sft_dataset; NO shuffle) ----------
     def _load_one_nonstreaming_spec(raw: str) -> DatasetDict:
         base, kvs, _ = _load_base_dataset(raw, streaming=False)
         ds = _ensure_datasetdict(base)  # normalize
-        ds = _truncate_dataset(ds, kvs)  # apply limits (train/test/...)
+        ds = _truncate_datasetdict(ds, kvs)  # apply limits (train/test/...)
         return ds
 
     # ---------- Load & Merge ----------
@@ -223,15 +178,40 @@ def _truncate_split(split_data, n: int):
         return type(split_data)(item for i, item in enumerate(split_data) if i < n)
 
 
-def _truncate_dataset(ds, limits: dict):
+def _truncate_datasetdict(ds, limits: dict):
     """
     Ensure and return a DatasetDict, truncating splits mentioned in `limits`.
+
+    If the dataset has only one split but `limits` contains multiple
+    target splits (e.g., train/test), we create each requested split
+    independently by truncating the original single split.
     """
-    ds = _ensure_datasetdict(ds)  # normalize first
+    ds = _ensure_datasetdict(ds)
+    split_names = list(ds.keys())
+
+    # ---- Single-split case: create requested splits from the same source ----
+    if len(split_names) == 1:
+        base = ds[split_names[0]]
+        out = {}
+
+        for split_name, n in limits.items():
+            if n is None:
+                continue
+            # Each target split is truncated independently from the same base
+            out[split_name] = _truncate_split(base, n)
+
+        # If no valid limits are given, return unchanged dataset
+        if not out:
+            return ds
+
+        return DatasetDict(out)
+
+    # ---- Multi-split case: truncate only the splits mentioned in limits ----
     out = {}
     for split, data in ds.items():
-        n = limits.get(split, None)
+        n = limits.get(split)
         out[split] = _truncate_split(data, n) if n is not None else data
+
     return DatasetDict(out)
 
 
@@ -319,7 +299,82 @@ def _match(name: str, needle) -> bool:
     return name.endswith(needle) or needle in name
 
 
-def _concat_iterable_datasets(parts: list[IterableDataset]) -> IterableDataset:
+def _truncate_iterabledatasetdict(
+    base: IterableDatasetDict | dict,
+    limits: dict,
+    # dataset_name_or_path: str,
+) -> IterableDatasetDict:
+    """
+    Apply train/test limits to an IterableDatasetDict.
+
+    - If no train/test limits are provided, return the dataset unchanged.
+    - If there is only one split, derive train/test (or just train / just test)
+      from that single split.
+    - If there are multiple splits, require the corresponding named split(s).
+    """
+    # Normalize to IterableDatasetDict
+    if not isinstance(base, IterableDatasetDict):
+        base = IterableDatasetDict(base)
+
+    n_train = limits.get("train")
+    n_test = limits.get("test")
+
+    # No limits → return as is
+    if n_train is None and n_test is None:
+        return base
+
+    split_names = list(base.keys())
+    single_split = len(split_names) == 1
+    single_split_name = split_names[0] if single_split else None
+
+    # Both train and test requested
+    if n_train is not None and n_test is not None:
+        if single_split:
+            # Use a single underlying stream, split into test then train
+            stream = base[single_split_name]
+            head = stream.take(n_train + n_test)
+            test = head.take(n_test)
+            train = head.skip(n_test).take(n_train)
+            return IterableDatasetDict({"train": train, "test": test})
+
+        # Multi-split: require explicit train/test splits
+        if "train" not in base or "test" not in base:
+            raise ValueError(
+                "require 'train' and 'test' splits for train+test limits."
+            )
+        train = base["train"].take(n_train)
+        test = base["test"].take(n_test)
+        return IterableDatasetDict({"train": train, "test": test})
+
+    # Only train requested
+    if n_train is not None:
+        if single_split:
+            train = base[single_split_name].take(n_train)
+        else:
+            if "train" not in base:
+                raise ValueError(
+                    "missing 'train' split for train limit."
+                )
+            train = base["train"].take(n_train)
+        return IterableDatasetDict({"train": train})
+
+    # Only test requested
+    if n_test is not None:
+        if single_split:
+            test = base[single_split_name].take(n_test)
+        else:
+            if "test" not in base:
+                raise ValueError(
+                    "missing 'test' split for test limit."
+                )
+            test = base["test"].take(n_test)
+        return IterableDatasetDict({"test": test})
+
+    # Fallback (should not be reached)
+    return base
+
+
+def _concat_iterabledatasets(parts: list[IterableDataset]) -> IterableDataset:
     """
     Concatenate IterableDatasets sequentially without materialization.
     Preserves streaming nature; supports downstream .take()/.skip()/.shuffle().
@@ -363,7 +418,7 @@ def _merge_iterabledatasetdicts(
         elif b is None:
             out[split] = a
         else:
-            out[split] = _concat_iterable_datasets([a, b])
+            out[split] = _concat_iterabledatasets([a, b])
     return IterableDatasetDict(out)
 
 

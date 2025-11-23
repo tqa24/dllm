@@ -38,13 +38,14 @@ You can use any BERT model instead for example, by `--model_name_or_path "Facebo
 
 To train [`ModernBERT-large`](https://huggingface.co/answerdotai/ModernBERT-large) on the [`tiny-shakespeare`](https://huggingface.co/datasets/Trelis/tiny-shakespeare) dataset, run:
 ```shell
-accelerate launch --config_file scripts/accelerate_configs/zero2.yaml --num_processes 1 \
+accelerate launch --config_file scripts/accelerate_configs/ddp.yaml --num_processes 1 \
     examples/bert/pt.py \
     --model_name_or_path "answerdotai/ModernBERT-large" \
     --dataset_args "Trelis/tiny-shakespeare" \
     --text_field "Text" \
     --insert_eos False \
     --max_length 128 \
+    --learning_rate 1e-4 \
     --num_train_epochs 20 \
     --per_device_train_batch_size 64 \
     --per_device_eval_batch_size 64 \
@@ -64,11 +65,12 @@ python -u examples/bert/chat.py \
 
 To train [`ModernBERT-large`](https://huggingface.co/answerdotai/ModernBERT-large) on the [`alpaca`](https://huggingface.co/datasets/tatsu-lab/alpaca) dataset, run:
 ```shell
-accelerate launch --config_file scripts/accelerate_configs/zero2.yaml --num_processes 8 \
+accelerate launch --config_file scripts/accelerate_configs/ddp.yaml --num_processes 8 \
     examples/bert/sft.py \
     --model_name_or_path "answerdotai/ModernBERT-large" \
     --dataset_args "tatsu-lab/alpaca" \
     --max_length 512 \
+    --learning_rate 1e-4 \
     --num_train_epochs 20 \
     --per_device_train_batch_size 64 \
     --per_device_eval_batch_size 64 \
@@ -96,6 +98,7 @@ accelerate launch --config_file scripts/accelerate_configs/zero2.yaml --num_proc
     --model_name_or_path "answerdotai/ModernBERT-base" \
     --dataset_args "allenai/tulu-3-sft-mixture|HuggingFaceTB/smoltalk" \
     --max_length 1024 \
+    --learning_rate 1e-4 \
     --num_train_epochs 10 \
     --per_device_train_batch_size 48 \
     --per_device_eval_batch_size 48 \
@@ -110,6 +113,7 @@ accelerate launch --config_file scripts/accelerate_configs/zero2.yaml --num_proc
     --model_name_or_path "answerdotai/ModernBERT-large" \
     --dataset_args "allenai/tulu-3-sft-mixture|HuggingFaceTB/smoltalk" \
     --max_length 1024 \
+    --learning_rate 1e-4 \
     --num_train_epochs 10 \
     --per_device_train_batch_size 48 \
     --per_device_eval_batch_size 48 \
@@ -130,7 +134,7 @@ python -u examples/bert/chat.py --model_name_or_path "dllm-collection/ModernBERT
 For example, to evaluate [`ModernBERT-large-chat-v0`](https://huggingface.co/dllm-collection/ModernBERT-large-chat-v0) on [`MMLU-Pro`](https://huggingface.co/datasets/TIGER-Lab/MMLU-Pro) using 4 GPUs, run:
 ```shell
 # Use model_args to adjust the generation arguments for evalution.
-accelerate launch  --num_processes 4 \
+accelerate launch --num_processes 4 \
     dllm/pipelines/bert/eval.py \
     --tasks "mmlu_pro" \
     --model "bert" \

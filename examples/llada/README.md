@@ -108,13 +108,10 @@ sbatch --nodes=24 --gres=gpu:8 scripts/train.slurm.sh \
     --load_preprocessed_data True \
     --output_dir "models/LLaDA-8B-Base/tulu-3-sft-mixture/fsdp-bs4-len2048-ep5-lr1e-5" \
     --max_length 2048 \
-    --truncation "right" \
-    --group_by_length True \
     --num_train_epochs 5 \
     --learning_rate 1e-5 \
     --per_device_train_batch_size 4 \
     --per_device_eval_batch_size 4 \
-    --eval_on_start False \
     --eval_steps 0.1 \
     --save_steps 0.05
 ```
