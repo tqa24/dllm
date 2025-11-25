@@ -25,7 +25,9 @@ Simple Diffusion Language Modeling
 
 
 ## News
-**[2025/11]** We released a collection of BERTs finetuned for instruction-following: [`ModernBERT-{large,base}-chat-v0`](https://huggingface.co/collections/dllm-collection/bert-chat). This proof-of-concept shows that BERT’s internal knowledge can be leveraged for generative tasks via masked instruction tuning. See [![blog](https://img.shields.io/badge/W&B-white?logo=weightsandbiases) BERT-Chat Report](https://api.wandb.ai/links/asap-zzhou/101h5xvg) for detailed recipes, experimental results and lessons learned; See [`examples/bert`](/examples/bert) for training / inference / evaluation instructions.
+**[2025/12] Autoregressive-to-Diffusion**: We released a pipeline that converts any autoregressive language model (e.g., Qwen, LLaMA, GPT-2) into a diffusion language model, along with a collection of small (0.5B/0.6B) diffusion models adapted from AR models: 🤗[TODO]. See [`examples/a2d`](/examples/a2d) for training / inference / evaluation instructions. See [![blog](https://img.shields.io/badge/W&B-white?logo=weightsandbiases) [TODO]]([TODO]) for detailed recipes, experimental results and lessons learned.
+
+**[2025/11] BERT-to-Diffusion**: We released the pipeline that enables any BERT-style model to generate text with diffusion, along with a collection of BERTs finetuned for instruction-following: 🤗[`ModernBERT-{large,base}-chat-v0`](https://huggingface.co/collections/dllm-collection/bert-chat). This proof-of-concept shows that BERT’s internal knowledge can be leveraged for generative tasks via masked instruction tuning. See [`examples/bert`](/examples/bert) for training / inference / evaluation instructions. See [![blog](https://img.shields.io/badge/W&B-white?logo=weightsandbiases) BERT-Chat Report](https://api.wandb.ai/links/asap-zzhou/101h5xvg) for detailed recipes, experimental results and lessons learned.
 
 
 ## Table of Contents

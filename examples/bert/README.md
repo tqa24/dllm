@@ -1,12 +1,12 @@
-# Generative BERT
+# BERT
 
 [![Hugging Face Checkpoints](https://img.shields.io/badge/Hugging%20Face-Checkpoints-yellow)](https://huggingface.co/collections/dllm-collection/bert-chat)
 [![W&B Report](https://img.shields.io/badge/W&B-Report-white?logo=weightsandbiases)](https://api.wandb.ai/links/asap-zzhou/101h5xvg)
 
 This directory provides two key sets of resources:
 
-1.  **Toy Examples ([Warmup](#warmup)):** Scripts for pretraining and SFTing any BERT-style model on small datasets to generate text.
-2.  **Official Scripts ([BERT-Chat](#bert-chat)):** The exact training, inference, and evaluation scripts used to create the [`ModernBERT-base-chat-v0`](https://huggingface.co/dllm-collection/ModernBERT-base-chat-v0) and [`ModernBERT-large-chat-v0`](https://huggingface.co/dllm-collection/ModernBERT-large-chat-v0) checkpoints, two BERTs finetuned as Chatbots. For a deep dive into experimental results, lessons learned, and more reproduction details, please see our full [BERT-Chat W&B Report](https://api.wandb.ai/links/asap-zzhou/101h5xvg).
+-  **[Warmup](#warmup)**: Tutorial-style scripts for continual pretraining and SFTing any BERT-style model on small datasets to generate text.
+-  **[BERT-Chat](#bert-chat)**: The exact training, inference, and evaluation scripts used to create the [`ModernBERT-base-chat-v0`](https://huggingface.co/dllm-collection/ModernBERT-base-chat-v0) and [`ModernBERT-large-chat-v0`](https://huggingface.co/dllm-collection/ModernBERT-large-chat-v0) 🤗checkpoints, two BERTs finetuned as Chatbots. For a deep dive into experimental results, lessons learned, and more reproduction details, please see our full [![blog](https://img.shields.io/badge/W&B-white?logo=weightsandbiases) BERT-Chat Report](https://api.wandb.ai/links/asap-zzhou/101h5xvg).
 
 <p align="center" style="margin-top: 15px;">
     <img src="/examples/bert/assets/chat.gif" alt="chat" width="70%">
@@ -31,10 +31,10 @@ examples/bert
 
 ## Warmup
 
-In this section, we show toy examples of pretraining and SFTing [`ModernBERT-large`](https://huggingface.co/answerdotai/ModernBERT-large) on small datasets to generate text.
+In this section, we show toy examples of continual pretraining and SFTing [`ModernBERT-large`](https://huggingface.co/answerdotai/ModernBERT-large) on small datasets to generate text.
 You can use any BERT model instead for example, by `--model_name_or_path "FacebookAI/roberta-large"`.
 
-### Pretrain
+### Continual Pretraining
 
 To train [`ModernBERT-large`](https://huggingface.co/answerdotai/ModernBERT-large) on the [`tiny-shakespeare`](https://huggingface.co/datasets/Trelis/tiny-shakespeare) dataset, run:
 ```shell
@@ -53,7 +53,7 @@ accelerate launch --config_file scripts/accelerate_configs/ddp.yaml --num_proces
     --output_dir "models/ModernBERT-large/tiny-shakespeare"
 ```
 
-To run inference with the model:
+To run the model for interactive inference:
 ```shell
 # just press enter (empty prompt) if you want the model to generate text from scratch 
 python -u examples/bert/chat.py \
@@ -87,7 +87,7 @@ python -u examples/bert/chat.py \
 ## BERT-Chat
 Here we show the exact commands we use to train and interact with the BERT-Chat models: 
 [`ModernBERT-base-chat-v0`](https://huggingface.co/dllm-collection/ModernBERT-base-chat-v0) and [`ModernBERT-large-chat-v0`](https://huggingface.co/dllm-collection/ModernBERT-large-chat-v0).
-For training curves and other details, please see [BERT-Chat W&B Report](https://api.wandb.ai/links/asap-zzhou/101h5xvg).
+For training curves and other details, please see [![blog](https://img.shields.io/badge/W&B-white?logo=weightsandbiases) BERT-Chat Report](https://api.wandb.ai/links/asap-zzhou/101h5xvg).
 
 ### Training
 
@@ -149,7 +149,7 @@ bash examples/bert/eval.sh --model_name_or_path "dllm-collection/ModernBERT-base
 bash examples/bert/eval.sh --model_name_or_path "dllm-collection/ModernBERT-large-chat-v0"
 ```
 
-### Evaluation results
+### Evaluation Results
 
 <!-- > Evaluated results are obtained using our own evaluation framework, while Reported results are taken from the original paper. 
 > Because the original work does not fully disclose its evaluation techniques or implementation tricks, we reproduce the setup using the best available methods. As a result, our reproduced scores may show a small residual gap relative to the reported numbers.  -->
