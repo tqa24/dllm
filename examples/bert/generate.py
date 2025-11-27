@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 import transformers
 
-import dllmdecode_trim
+import dllm
 from dllm.pipelines import llada
 
 
