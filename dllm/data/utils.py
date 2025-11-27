@@ -1,3 +1,4 @@
+import re
 from datasets import (
     Dataset,
     DatasetDict,
@@ -21,12 +22,12 @@ def load_sft_dataset(
       - "tatsu-lab/alpaca"
       - "OpenCoder-LLM/opc-sft-stage2[name:educational_instruct,lang:python]"
       - "tatsu-lab/alpaca[train:5000]"
-      - "tatsu-lab/alpaca[train:5000] | HuggingFaceH4/ultrachat_200k[train:5000]"
+      - "tatsu-lab/alpaca[train:5000] + HuggingFaceH4/ultrachat_200k[train:5000]"
     """
     from dllm.data.alpaca import load_dataset_alpaca
     from dllm.data.opc import load_dataset_opc_sft
 
-    specs = [p.strip() for p in dataset_args.split("|") if p.strip()]
+    specs = [p.strip() for p in re.split(r"[|+]", dataset_args) if p.strip()]
     all_parts = []
 
     for raw in specs:
@@ -89,7 +90,7 @@ def load_pt_dataset(
     """
     from dllm.data.opc import load_dataset_opc_annealing
 
-    specs = [p.strip() for p in dataset_args.split("|") if p.strip()]
+    specs = [p.strip() for p in re.split(r"[|+]", dataset_args) if p.strip()]
     if not specs:
         raise ValueError("Empty dataset_args for load_pt_dataset.")
 

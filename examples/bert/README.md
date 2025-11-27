@@ -96,14 +96,14 @@ To reproduce [`ModernBERT-base-chat-v0`](https://huggingface.co/dllm-collection/
 accelerate launch --config_file scripts/accelerate_configs/zero2.yaml --num_processes 8 \
     examples/bert/sft.py \
     --model_name_or_path "answerdotai/ModernBERT-base" \
-    --dataset_args "allenai/tulu-3-sft-mixture|HuggingFaceTB/smoltalk" \
+    --dataset_args "allenai/tulu-3-sft-mixture+HuggingFaceTB/smoltalk" \
     --max_length 1024 \
     --learning_rate 1e-4 \
     --num_train_epochs 10 \
     --per_device_train_batch_size 48 \
     --per_device_eval_batch_size 48 \
     --save_steps 0.1 \
-    --output_dir "models/ModernBERT-base/tulu-3-smoltalk/epochs-10-bs-384-len-1024"
+    --output_dir "models/ModernBERT-base/tulu-3-sft-mixture+smoltalk"
 ```
 
 To reproduce [`ModernBERT-large-chat-v0`](https://huggingface.co/dllm-collection/ModernBERT-large-chat-v0), run:
@@ -111,14 +111,14 @@ To reproduce [`ModernBERT-large-chat-v0`](https://huggingface.co/dllm-collection
 accelerate launch --config_file scripts/accelerate_configs/zero2.yaml --num_processes 8 \
     examples/bert/sft.py \
     --model_name_or_path "answerdotai/ModernBERT-large" \
-    --dataset_args "allenai/tulu-3-sft-mixture|HuggingFaceTB/smoltalk" \
+    --dataset_args "allenai/tulu-3-sft-mixture+HuggingFaceTB/smoltalk" \
     --max_length 1024 \
     --learning_rate 1e-4 \
     --num_train_epochs 10 \
     --per_device_train_batch_size 48 \
     --per_device_eval_batch_size 48 \
     --save_steps 0.1 \
-    --output_dir "models/ModernBERT-large/tulu-3-smoltalk/epochs-10-bs-384-len-1024"
+    --output_dir "models/ModernBERT-large/tulu-3-sft-mixture+smoltalk"
 ```
 
 ### Inference

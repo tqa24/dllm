@@ -60,17 +60,17 @@ examples/llada
 ## Training
 ### SFT
 
-For example, to SFT [`LLaDA-8B-Base`](https://huggingface.co/GSAI-ML/LLaDA-8B-Base) for instruction following on 8 GPUs, run:
+For example, to SFT [`LLaDA-8B-Base`](https://huggingface.co/GSAI-ML/LLaDA-8B-Base) on the [`alpaca`](https://huggingface.co/datasets/tatsu-lab/alpaca) dataset for instruction following on 8 GPUs, run:
 ```shell
 accelerate launch \
     --config_file scripts/accelerate_configs/fsdp.yaml \
     examples/llada/sft.py \
     --model_name_or_path "GSAI-ML/LLaDA-8B-Base" \
-    --dataset_args "allenai/tulu-3-sft-mixture" \
-    --output_dir "models/LLaDA-8B-Base/tulu-3-sft-mixture" \
+    --dataset_args "tatsu-lab/alpaca" \
     --max_length 1024 \ 
     --num_train_epochs 4 \
-    --learning_rate 2e-5
+    --learning_rate 2e-5 \
+    --output_dir "models/LLaDA-8B-Base/alpaca"
 ```
 If you are using slurm and want to train across, for example, 2 nodes (16 GPUs total), run:
 ```shell
@@ -78,17 +78,17 @@ sbatch --nodes=2 --gres=gpu:8 scripts/train.slurm.sh \
     --accelerate_config "fsdp" \
     --script_path "examples/llada/sft.py" \
     --model_name_or_path "GSAI-ML/LLaDA-8B-Base" \
-    --dataset_args "allenai/tulu-3-sft-mixture" \
-    --output_dir "models/LLaDA-8B-Base/tulu-3-sft-mixture" \
+    --dataset_args "tatsu-lab/alpaca" \
     --max_length 1024 \ 
     --num_train_epochs 4 \
-    --learning_rate 2e-5
+    --learning_rate 2e-5 \
+    --output_dir "models/LLaDA-8B-Base/alpaca"
 ```
 
 <!-- **Reproducing [LLaDA-8B-Instruct](https://huggingface.co/GSAI-ML/LLaDA-8B-Instruct)**. Though LLaDA is trained on proprietary data, we tried our best to reproduce LLaDA-8B-Instruct by finetuning LLaDA-8B-Base using our training pipeline on public instruction-following dataset [allenai/tulu-3-sft-mixture](https://huggingface.co/datasets/allenai/tulu-3-sft-mixture): -->
 
 #### Reproducing [`LLaDA-8B-Instruct`](https://huggingface.co/GSAI-ML/LLaDA-8B-Instruct) with SFT
-Though LLaDA is trained on proprietary data, we tried our best to reproduce [`LLaDA-8B-Instruct`](https://huggingface.co/GSAI-ML/LLaDA-8B-Instruct) by finetuning [`LLaDA-8B-Base`](https://huggingface.co/GSAI-ML/LLaDA-8B-Base) using our training pipeline on public instruction-following dataset [`allenai/tulu-3-sft-mixture`](https://huggingface.co/datasets/allenai/tulu-3-sft-mixture):
+Though LLaDA is trained on proprietary data, we tried our best to reproduce [`LLaDA-8B-Instruct`](https://huggingface.co/GSAI-ML/LLaDA-8B-Instruct) by finetuning [`LLaDA-8B-Base`](https://huggingface.co/GSAI-ML/LLaDA-8B-Base) with SFT on the [`allenai/tulu-3-sft-mixture`](https://huggingface.co/datasets/allenai/tulu-3-sft-mixture) dataset:
 
 ```shell
 # preprocessing SFT data (optional, but can avoid redundant preprocessing for multi-node training)
@@ -106,14 +106,14 @@ sbatch --nodes=24 --gres=gpu:8 scripts/train.slurm.sh \
     --model_name_or_path "GSAI-ML/LLaDA-8B-Base" \
     --dataset_args "data/sft/llada/tulu-3-sft-mixture" \
     --load_preprocessed_data True \
-    --output_dir "models/LLaDA-8B-Base/tulu-3-sft-mixture/fsdp-bs4-len2048-ep5-lr1e-5" \
     --max_length 2048 \
     --num_train_epochs 5 \
     --learning_rate 1e-5 \
     --per_device_train_batch_size 4 \
     --per_device_eval_batch_size 4 \
     --eval_steps 0.1 \
-    --save_steps 0.05
+    --save_steps 0.05 \
+    --output_dir "models/LLaDA-8B-Base/tulu-3-sft-mixture"
 ```
 <!-- [TODO] Training curves are on Wandb; checkpoints with evaluation results are available on Hugging Face. See the [Evaluation](#evaluation) section below for evaluation instructions. -->
 
@@ -127,10 +127,10 @@ sbatch --nodes=24 --gres=gpu:8 scripts/train.slurm.sh \
     --script_path "examples/llada/pt.py" \
     --model_name_or_path "GSAI-ML/LLaDA-8B-Base" \
     --dataset_args "mlfoundations/dclm-baseline-1.0" \
-    --output_dir "models/LLaDA-8B-Base/dclm-baseline-1.0" \
     --max_length 1024 \ 
     --max_steps 2000 \
-    --learning_rate 3e-4
+    --learning_rate 3e-4 \
+    --output_dir "models/LLaDA-8B-Base/dclm-baseline-1.0"
 ```
 
 ## Inference

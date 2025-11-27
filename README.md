@@ -206,7 +206,7 @@ See [Features](#features) for specific training recipes.
 > 1. Use a subset of data:
 > `--dataset_args "allenai/tulu-3-sft-mixture[train:10000,test:1000]"`
 > 2. Concatenate datasets:
-> `--dataset_args "allenai/tulu-3-sft-mixture|HuggingFaceTB/smoltalk"`
+> `--dataset_args "allenai/tulu-3-sft-mixture+HuggingFaceTB/smoltalk"`
 > 3. Train with LoRA and 4bit quantization:
 > `--load_in_4bit True --lora True`
 > 4. Train with different distributed training methods:
