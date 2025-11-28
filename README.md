@@ -25,9 +25,9 @@ Simple Diffusion Language Modeling
 
 
 ## News
-**[2025/12] Autoregressive-to-Diffusion**: We released a pipeline that converts any autoregressive language model (e.g., Qwen, LLaMA, GPT-2) into a diffusion language model, along with a collection of small (0.5B/0.6B) diffusion models adapted from AR models: 🤗[TODO]. See [`examples/a2d`](/examples/a2d) for training / inference / evaluation instructions. See [![blog](https://img.shields.io/badge/W&B-white?logo=weightsandbiases) [TODO]]([TODO]) for detailed recipes, experimental results and lessons learned.
+**[2025/12] 🤗[`Tiny-A2D`](https://huggingface.co/collections/dllm-collection/tiny-a2d)**: We released a collection of **SOTA** small (0.5B/0.6B) diffusion models adapted from AR models, with fully open recipes for converting **ANY** AR model (e.g., Qwen, LLaMA, and GPT-2) into a diffusion model. See [`examples/a2d`](/examples/a2d) for training / inference / evaluation instructions.
 
-**[2025/11] BERT-to-Diffusion**: We released the pipeline that enables any BERT-style model to generate text with diffusion, along with a collection of BERTs finetuned for instruction-following: 🤗[`ModernBERT-{large,base}-chat-v0`](https://huggingface.co/collections/dllm-collection/bert-chat). This proof-of-concept shows that BERT’s internal knowledge can be leveraged for generative tasks via masked instruction tuning. See [`examples/bert`](/examples/bert) for training / inference / evaluation instructions. See [![blog](https://img.shields.io/badge/W&B-white?logo=weightsandbiases) BERT-Chat Report](https://api.wandb.ai/links/asap-zzhou/101h5xvg) for detailed recipes, experimental results and lessons learned.
+**[2025/11] 🤗[`BERT-Chat`](https://huggingface.co/collections/dllm-collection/bert-chat)**: We released a collection of BERTs finetuned to chat with diffusion, with open recipes for turning **ANY** BERT encoder (e.g., BERT, RoBERTa, ModernBERT) into a diffusion model. See [`examples/bert`](/examples/bert) for training / inference / evaluation instructions.
 
 
 ## Table of Contents
@@ -44,7 +44,7 @@ Simple Diffusion Language Modeling
 - [`examples/llada`](/examples/llada): Pretraining, finetuning and evaluating LLaDA [LLaDA](https://arxiv.org/abs/2502.09992) / [LLaDA-MoE](https://arxiv.org/abs/2509.24389).
 - [`examples/dream`](/examples/dream): Pretraining, finetuning and evaluating Dream [Dream](https://arxiv.org/abs/2508.15487).
 - [`examples/bert`](/examples/bert): Finetuning any [BERT](https://arxiv.org/abs/1810.04805) to be lightweight Chatbots.
-    <details>
+    <!-- <details>
     <summary>🎬 Click to show BERT-Chat Demo</summary>
 
     <p align="center">
@@ -55,10 +55,9 @@ Simple Diffusion Language Modeling
         Chat with <a href="https://huggingface.co/dllm-collection/ModernBERT-large-chat-v0"><code>ModernBERT-large-chat-v0</code></a>. See <a href="/examples/bert/README.md/#inference">Inference</a> for details.
     </em>
     </p>
-    </details>
+    </details> -->
 - [`examples/editflow`](/examples/editflow): Educational reference for training [Edit Flows](https://arxiv.org/abs/2506.09018) models, demonstrating how to extend existing DLLMs (e.g., LLaDA, Dream, BERT-Chat) with *edit operations*—insertion, deletion, and substitution—and how to pretrain or finetune Edit Flows models from scratch on public data.
-
-   <details>
+   <!-- <details>
    <summary>🎬 Click to show EditFlow Demo</summary>
 
    <p align="center">
@@ -66,7 +65,7 @@ Simple Diffusion Language Modeling
    </p>
    <p align="center"><em>EditFlow performing insertion (blue), substitution from mask tokens (black), substitution from non-mask tokens (red), and deletion (strikethrough → removed) during generation.</em></p>
 
-   </details>
+   </details> -->
 - More upcoming.
 
 
