@@ -10,6 +10,13 @@ from transformers.processing_utils import Unpack
 from transformers.utils import TransformersKwargs
 from transformers.modeling_attn_mask_utils import _prepare_4d_attention_mask
 
+if transformers.utils.is_torch_flex_attn_available():
+    from torch.nn.attention.flex_attention import _DEFAULT_SPARSE_BLOCK_SIZE as flex_default_block_size
+    from torch.nn.attention.flex_attention import BlockMask, create_block_mask
+else:
+    # Register a fake type to avoid crashing for annotations and `isinstance` checks
+    BlockMask = torch.Tensor
+
 
 class A2DQwen2Config(transformers.Qwen2Config):
     model_type = "a2d-qwen2"  # <- NEW model_type
@@ -78,22 +85,25 @@ class A2DQwen2Model(transformers.Qwen2Model):
         if not isinstance(causal_mask_mapping := attention_mask, dict):
             batch_size, seq_len = inputs_embeds.shape[:2]
             device = inputs_embeds.device
-            dtype = inputs_embeds.dtype
 
+            # 1) If no mask is provided → treat all tokens as valid (no padding)
             if attention_mask is None:
-                # If no attention mask is provided, treat all positions as valid (non-padding)
-                attention_mask = torch.ones(batch_size, seq_len, device=device, dtype=torch.long)
-            else:
-                # User-provided padding mask of shape [B, T]
-                attention_mask = attention_mask
+                attention_mask = torch.ones(
+                    batch_size, seq_len, device=device, dtype=torch.long
+                )
 
-            # # Convert 2D padding mask → 4D additive mask (block padding only, no causal structure)
-            attention_mask = _prepare_4d_attention_mask(attention_mask, self.dtype)
+            # 2) If mask is not already a 4D attention mask → convert it
+            if not (
+                isinstance(attention_mask, BlockMask)
+                or (isinstance(attention_mask, torch.Tensor) and attention_mask.ndim == 4)
+            ):
+                attention_mask = _prepare_4d_attention_mask(attention_mask, self.dtype)
 
-            # Use this non-causal mask for all attention layers
+            # 3) Build causal mask mapping used by the attention layers
             causal_mask_mapping = {"full_attention": attention_mask}
+
+            # Sliding-window layers share the same non-causal mask
             if self.has_sliding_layers:
-                # For sliding window layers, also use the same non-causal mask
                 causal_mask_mapping["sliding_attention"] = attention_mask
         # -------------------------------------------------------------
         # NEW CODE (bidirectional, padding-only mask)

@@ -35,7 +35,7 @@ class MDLMTrainer(transformers.Trainer):
             labels = inputs.get("labels", None)
 
             # If labels exist and EVERY sequence already starts with -100,
-            # we treat them as already right-shifted and skip prepending BOS.
+            # we treat them as is and skip prepending BOS.
             if labels is not None:
                 # shape: [bsz, seq_len]
                 if torch.all(labels[:, 0] == -100):
