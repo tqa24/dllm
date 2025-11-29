@@ -9,12 +9,12 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from dllm.core.generators import (
-    GeneratorOutput,
-    GeneratorConfig,
-    BaseGenerator,
-    get_num_transfer_tokens,
+from dllm.core.samplers.base import (
+    SamplerOutput,
+    SamplerConfig,
+    BaseSampler,
 )
+from dllm.core.samplers.utils import get_num_transfer_tokens
 
 
 def add_gumbel_noise(logits: torch.Tensor, temperature: float) -> torch.Tensor:
@@ -32,7 +32,7 @@ def add_gumbel_noise(logits: torch.Tensor, temperature: float) -> torch.Tensor:
 
 
 @dataclass
-class MDLMGeneratorConfig(GeneratorConfig):
+class MDLMSamplerConfig(SamplerConfig):
     max_new_tokens: int = 128
     max_length: int = (
         None  # There's no explicit length_limit except for the tokenizer/model context
@@ -44,20 +44,22 @@ class MDLMGeneratorConfig(GeneratorConfig):
     stochastic_transfer: bool = False
     cfg_scale: float = 0.0
     cfg_keep_tokens: list[int] | None = None
+    suppress_tokens: list[int] | None = None
+    begin_suppress_tokens: list[int] | None = None
     right_shift_logits: bool = False
 
 
 @dataclass
-class MDLMGenerator(BaseGenerator):
+class MDLMSampler(BaseSampler):
     @torch.no_grad()
-    def generate(
+    def sample(
         self,
         inputs: list[torch.Tensor | list],
-        config: MDLMGeneratorConfig | None = None,
+        config: MDLMSamplerConfig | None = None,
         **kwargs,
-    ) -> GeneratorOutput | torch.Tensor:
+    ) -> SamplerOutput | torch.Tensor:
         if config is None:
-            config = MDLMGeneratorConfig()
+            config = MDLMSamplerConfig()
 
         # ----- pull args from config, allow kwargs to override -----
         steps = kwargs.get("steps", config.steps)
@@ -68,13 +70,17 @@ class MDLMGenerator(BaseGenerator):
         cfg_scale = kwargs.get("cfg_scale", config.cfg_scale)
         cfg_keep_tokens = kwargs.get("cfg_keep_tokens", config.cfg_keep_tokens)
         remasking = kwargs.get("remasking", config.remasking)
+        suppress_tokens = kwargs.get("suppress_tokens", config.suppress_tokens)
         stochastic_transfer = kwargs.get(
             "stochastic_transfer", config.stochastic_transfer
         )
-        return_dict_in_generate = kwargs.get(
-            "return_dict_in_generate", config.return_dict_in_generate
+        return_dict = kwargs.get(
+            "return_dict", config.return_dict
         )
         right_shift_logits = kwargs.get("right_shift_logits", config.right_shift_logits)
+        begin_suppress_tokens = kwargs.get(
+            "begin_suppress_tokens", config.begin_suppress_tokens
+        )
 
         assert 1 <= block_length
         assert 1 <= steps
@@ -119,7 +125,7 @@ class MDLMGenerator(BaseGenerator):
         # ----- Block scheduling over the appended mask tail -----
         num_blocks = math.ceil(max_new_tokens / block_length)
         steps = math.ceil(steps / num_blocks)  # per-block step budget
-        histories = [x.clone()] if return_dict_in_generate else None
+        histories = [x.clone()] if return_dict else None
 
         for b in range(num_blocks):
             # Build a per-sample mask *within this block* (aligned to each prompt's tail)
@@ -165,6 +171,10 @@ class MDLMGenerator(BaseGenerator):
                     logits = self.model(
                         x, attention_mask=attention_mask
                     ).logits  # Use attention mask here
+                
+                if suppress_tokens is not None and len(suppress_tokens) > 0:
+                    for token_id in suppress_tokens:
+                        logits[:, :, token_id] = -torch.inf
 
                 if right_shift_logits:
                     logits = torch.cat([logits[:, :1], logits[:, :-1]], dim=1)
@@ -174,6 +184,10 @@ class MDLMGenerator(BaseGenerator):
                 x0 = torch.argmax(
                     logits_with_noise, dim=-1
                 )  # [B, T] predicted token ids
+
+                if begin_suppress_tokens is not None and len(begin_suppress_tokens) > 0:
+                    for token_id in begin_suppress_tokens:
+                        logits[:, :, token_id] = -torch.inf
 
                 # Per-position confidence used to pick which masks to commit this step
                 if remasking == "low_confidence":
@@ -214,15 +228,15 @@ class MDLMGenerator(BaseGenerator):
                     histories.append(x.clone())
 
         # ----- Output format -----
-        if not return_dict_in_generate:
+        if not return_dict:
             return x
         else:
-            return GeneratorOutput(sequences=x, histories=histories)
+            return SamplerOutput(sequences=x, histories=histories)
 
     @torch.no_grad()
     def infill(
         self, inputs: list[torch.Tensor | list], config, **kwargs
-    ) -> GeneratorOutput | torch.Tensor:
+    ) -> SamplerOutput | torch.Tensor:
         """
         Fill in-place the <|mdm_mask|> tokens contained in `inputs`.
         The whole (padded) sequence is split into block windows of length
@@ -242,13 +256,17 @@ class MDLMGenerator(BaseGenerator):
         cfg_scale = kwargs.get("cfg_scale", config.cfg_scale)
         cfg_keep_tokens = kwargs.get("cfg_keep_tokens", config.cfg_keep_tokens)
         remasking = kwargs.get("remasking", config.remasking)
+        suppress_tokens = kwargs.get("suppress_tokens", config.suppress_tokens)
         stochastic_transfer = kwargs.get(
             "stochastic_transfer", config.stochastic_transfer
         )
-        return_dict_in_generate = kwargs.get(
-            "return_dict_in_generate", config.return_dict_in_generate
+        return_dict = kwargs.get(
+            "return_dict", config.return_dict
         )
         right_shift_logits = kwargs.get("right_shift_logits", config.right_shift_logits)
+        begin_suppress_tokens = kwargs.get(
+            "begin_suppress_tokens", config.begin_suppress_tokens
+        )
 
         mask_id = self.tokenizer.mask_token_id
         eos_id = self.tokenizer.eos_token_id
@@ -289,7 +307,7 @@ class MDLMGenerator(BaseGenerator):
         # ----- Blockwise schedule over the *entire* (padded) sequence -----
         num_blocks = math.ceil(T / block_length)
         steps_per_block = math.ceil(steps / num_blocks)
-        histories = [x.clone()] if return_dict_in_generate else None
+        histories = [x.clone()] if return_dict else None
 
         # Create attention mask where eos_token_id is masked (set to 0)
         attention_mask = (x != eos_id).long()
@@ -339,12 +357,20 @@ class MDLMGenerator(BaseGenerator):
                         x, attention_mask=attention_mask
                     ).logits  # Use attention mask here
 
+                if suppress_tokens is not None and len(suppress_tokens) > 0:
+                    for token_id in suppress_tokens:
+                        logits[:, :, token_id] = -torch.inf
+
                 if right_shift_logits:
                     logits = torch.cat([logits[:, :1], logits[:, :-1]], dim=1)
 
                 # Greedy with optional Gumbel-Max noise
                 logits_with_noise = add_gumbel_noise(logits, temperature=temperature)
-                x0 = torch.argmax(logits_with_noise, dim=-1)  # [B, T]
+                x0 = torch.argmax(logits_with_noise, dim=-1) # [B, T]
+
+                if begin_suppress_tokens is not None and len(begin_suppress_tokens) > 0:
+                    for token_id in begin_suppress_tokens:
+                        logits[:, :, token_id] = -torch.inf
 
                 # Confidence used for choosing which masks to commit this step
                 if remasking == "low_confidence":
@@ -382,7 +408,7 @@ class MDLMGenerator(BaseGenerator):
                     histories.append(x.clone())
 
         # ----- Output format -----
-        if not return_dict_in_generate:
+        if not return_dict:
             return x
         else:
-            return GeneratorOutput(sequences=x, histories=histories)
+            return SamplerOutput(sequences=x, histories=histories)

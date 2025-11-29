@@ -25,11 +25,11 @@ from lm_eval.api.registry import register_model
 from lm_eval.models.utils import get_dtype
 
 import dllm
-from dllm.pipelines.llada import LLaDAGenerator, LLaDAGeneratorConfig
+from dllm.core.samplers import MDLMSampler, MDLMSamplerConfig
 
 
 @dataclass
-class BERTEvalConfig(LLaDAGeneratorConfig):
+class BERTEvalConfig(MDLMSamplerConfig):
     max_new_tokens: int = 128
     max_length: int = 512
     steps: int = 128
@@ -105,7 +105,7 @@ class BERTEvalHarness(LM):
             SimpleNamespace(model_name_or_path=pretrained, model=self.model)
         )
 
-        # generation params
+        # sampler params
         self.mask_id = self.tokenizer.mask_token_id
         self.batch_size = int(batch_size)
         self.max_length = int(max_length)
@@ -324,12 +324,12 @@ class BERTEvalHarness(LM):
         ds = ds.with_format("torch")
 
         out = []
-        generator = LLaDAGenerator(model=self.model, tokenizer=self.tokenizer)
+        sampler = MDLMSampler(model=self.model, tokenizer=self.tokenizer)
 
         for elem in tqdm(ds, desc="Generating..."):
             prompt = [elem["question"][1:-1].to(self.device)]
             stop_tokens = elem["until"]
-            generated_ids = generator.generate(
+            generated_ids = sampler.sample(
                 inputs=prompt,
                 steps=self.steps,
                 max_new_tokens=self.max_new_tokens,
@@ -341,7 +341,6 @@ class BERTEvalHarness(LM):
             generated_answer = self.tokenizer.decode(
                 generated_ids[0][prompt[0].shape[0] :], skip_special_tokens=False
             )
-            breakpoint()
             for stop_seq in stop_tokens:
                 if stop_seq in generated_answer:
                     generated_answer = generated_answer.split(stop_seq)[0]

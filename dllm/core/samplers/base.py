@@ -8,18 +8,18 @@ from dllm.core.schedulers import BaseAlphaScheduler, LinearAlphaScheduler
 
 
 @dataclass
-class GeneratorOutput:
+class SamplerOutput:
     sequences: torch.Tensor
     histories: list[torch.Tensor] | None = None
 
 
 @dataclass
-class GeneratorConfig:
-    return_dict_in_generate: bool = False
+class SamplerConfig:
+    return_dict: bool = False
 
 
 @dataclass
-class BaseGenerator(ABC):
+class BaseSampler(ABC):
     model: PreTrainedModel
     tokenizer: PreTrainedTokenizer
     scheduler: BaseAlphaScheduler | None = None
@@ -30,12 +30,12 @@ class BaseGenerator(ABC):
 
     @abstractmethod
     @torch.no_grad()
-    def generate(
+    def sample(
         self,
         prompts: list[torch.Tensor, list],
-        config: GeneratorConfig | None = None,
+        config: SamplerConfig | None = None,
         **kwargs,
-    ) -> GeneratorOutput:
+    ) -> SamplerOutput:
         raise NotImplementedError
 
     @abstractmethod
@@ -43,7 +43,7 @@ class BaseGenerator(ABC):
     def infill(
         self,
         inputs: list[torch.Tensor, list],
-        config: GeneratorConfig | None = None,
+        config: SamplerConfig | None = None,
         **kwargs,
-    ) -> GeneratorOutput:
+    ) -> SamplerOutput:
         raise NotImplementedError

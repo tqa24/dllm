@@ -1,12 +1,12 @@
 """
-Interactive chat / generation script for LLaDA models.
+Interactive chat / sampling script for LLaDA models.
 
 Examples
 --------
 # Chat mode (multi-turn, chat template)
 python -u examples/llada/chat.py --model_name_or_path "YOUR_MODEL_PATH" --chat True
 
-# Raw single-turn generation
+# Raw single-turn sampling
 python -u examples/llada/chat.py --model_name_or_path "YOUR_MODEL_PATH" --chat False
 """
 
@@ -15,7 +15,6 @@ from dataclasses import dataclass
 import transformers
 
 import dllm
-from dllm.pipelines import llada
 
 
 @dataclass
@@ -26,14 +25,14 @@ class ScriptArguments:
     visualize: bool = True
 
     def __post_init__(self):
-        # same base-path resolution logic as in generate.py
+        # same base-path resolution logic as in sample.py
         self.model_name_or_path = dllm.utils.resolve_with_base_env(
             self.model_name_or_path, "BASE_MODELS_DIR"
         )
 
 
 @dataclass
-class GeneratorConfig(llada.LLaDAGeneratorConfig):
+class SamplerConfig(dllm.core.samplers.MDLMSamplerConfig):
     steps: int = 128
     max_new_tokens: int = 128
     block_length: int = 32
@@ -42,25 +41,25 @@ class GeneratorConfig(llada.LLaDAGeneratorConfig):
 
 
 def main():
-    parser = transformers.HfArgumentParser((ScriptArguments, GeneratorConfig))
-    script_args, gen_config = parser.parse_args_into_dataclasses()
+    parser = transformers.HfArgumentParser((ScriptArguments, SamplerConfig))
+    script_args, sampler_config = parser.parse_args_into_dataclasses()
     transformers.set_seed(script_args.seed)
 
     model = dllm.utils.get_model(model_args=script_args).eval()
     tokenizer = dllm.utils.get_tokenizer(model_args=script_args)
-    generator = llada.LLaDAGenerator(model=model, tokenizer=tokenizer)
+    sampler = dllm.core.samplers.MDLMSampler(model=model, tokenizer=tokenizer)
 
     if script_args.chat:
         dllm.utils.multi_turn_chat(
-            generator=generator,
-            gen_config=gen_config,
+            sampler=sampler,
+            sampler_config=sampler_config,
             visualize=script_args.visualize,
         )
     else:
-        print("\nSingle-turn generation (no chat template).")
-        dllm.utils.single_turn_generate(
-            generator=generator,
-            gen_config=gen_config,
+        print("\nSingle-turn sampling (no chat template).")
+        dllm.utils.single_turn_sampling(
+            sampler=sampler,
+            sampler_config=sampler_config,
             visualize=script_args.visualize,
         )
 

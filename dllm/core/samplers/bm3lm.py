@@ -9,12 +9,12 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from dllm.core.generators import (
-    GeneratorOutput,
-    GeneratorConfig,
-    BaseGenerator,
-    get_num_transfer_tokens,
+from dllm.core.samplers.base import (
+    SamplerOutput,
+    SamplerConfig,
+    BaseSampler,
 )
+from dllm.core.samplers.utils import get_num_transfer_tokens
 
 
 # def add_gumbel_noise(logits: torch.Tensor, temperature: float) -> torch.Tensor:
@@ -32,7 +32,7 @@ from dllm.core.generators import (
 
 
 @dataclass
-class MDLMGeneratorConfig(GeneratorConfig):
+class BM3LMSamplerConfig(SamplerConfig):
     max_new_tokens: int = 128
     max_length: int = (
         None  # There's no explicit length_limit except for the tokenizer/model context
@@ -48,18 +48,18 @@ class MDLMGeneratorConfig(GeneratorConfig):
 
 
 @dataclass
-class BM3LMGenerator(BaseGenerator):
+class BM3LMSampler(BaseSampler):
 
     @torch.no_grad()
-    def generate(
+    def sample(
         self,
         inputs: list[torch.Tensor | list],
-        config: MDLMGeneratorConfig | None = None,
+        config: BM3LMSamplerConfig | None = None,
         **kwargs,
-    ) -> GeneratorOutput | torch.Tensor:
+    ) -> SamplerOutput | torch.Tensor:
 
         if config is None:
-            config = MDLMGeneratorConfig()
+            config = BM3LMSamplerConfig()
 
         # ---- config extraction ----
         steps = kwargs.get("steps", config.steps)
@@ -71,8 +71,8 @@ class BM3LMGenerator(BaseGenerator):
         cfg_keep_tokens = kwargs.get("cfg_keep_tokens", config.cfg_keep_tokens)
         remasking = kwargs.get("remasking", config.remasking)
         stochastic_transfer = kwargs.get("stochastic_transfer", config.stochastic_transfer)
-        return_dict_in_generate = kwargs.get(
-            "return_dict_in_generate", config.return_dict_in_generate
+        return_dict = kwargs.get(
+            "return_dict", config.return_dict
         )
         right_shift_logits = kwargs.get("right_shift_logits", config.right_shift_logits)
 
@@ -117,7 +117,7 @@ class BM3LMGenerator(BaseGenerator):
         # ---- block scheduling ----
         num_blocks = math.ceil(max_new_tokens / block_length)
         steps = math.ceil(steps / num_blocks)
-        histories = [x.clone()] if return_dict_in_generate else None
+        histories = [x.clone()] if return_dict else None
 
         generated = 0  # number of appended tokens so far
 
@@ -237,6 +237,6 @@ class BM3LMGenerator(BaseGenerator):
             generated += cur_block_len
 
         # ---- output ----
-        if not return_dict_in_generate:
+        if not return_dict:
             return x
-        return GeneratorOutput(sequences=x, histories=histories)
+        return SamplerOutput(sequences=x, histories=histories)

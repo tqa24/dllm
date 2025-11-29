@@ -7,7 +7,7 @@ This directory provides an educational reference for training EditFlow models. I
 
 > [!NOTE]
 > - Examples are available for both LLaDA and Dream, but this README focuses on adapting open-weight LLaDA for edit operations ([`adapt_llada.py`](/examples/editflow/adapt_llada.py)) and reusing its architecture for training from scratch ([`pt_llada.py`](/examples/editflow/pt_llada.py) -> [`sft_llada.py`](/examples/editflow/sft_llada.py)).
-> - While `EditFlowCollator` supports custom `x0`, this README uses a fixed-length (128) masks as `x0`. The trained model generates text by replacing masks, deleting redundant ones, and inserting tokens as needed. To change the default `x0` distribution (e.g., empty sequences for [OneFlow](https://arxiv.org/abs/2510.03506)-like insertion-only generation), pass `--x0_sampler "empty"`.
+> - While `EditFlowCollator` supports custom `x0`, this README uses a fixed-length (128) masks as `x0`. The trained model samples text by replacing masks, deleting redundant ones, and inserting tokens as needed. To change the default `x0` distribution (e.g., empty sequences for [OneFlow](https://arxiv.org/abs/2510.03506)-like insertion-only sampling), pass `--x0_sampler "empty"`.
 
 ## Table of Contents
 - [Setup](#setup)
@@ -38,7 +38,7 @@ dllm/pipelines/editflow
 examples/editflow
 ├── adapt_dream.py              # Example of adapting Dream for EditFlow directly
 ├── adapt_llada.py              # Example of adapting LLaDA for EditFlow directly
-├── generate.py                 # Generation example
+├── sample.py                 # Sampling example
 ├── pt_dream.py                 # EditFlowDream pretraining example
 ├── pt_llada.py                 # EditFlowLLaDA pretraining example
 ├── pt.py                       # Pretraining function
@@ -52,7 +52,7 @@ examples/editflow
 
 ### Adapting [LLaDA-8B-Instruct](https://huggingface.co/GSAI-ML/LLaDA-8B-Instruct) to support *insertion* and *deletion*
 
-The original LLaDA model generated text by iteratively substituting the given `<mask>` tokens to real tokens. 
+The original LLaDA model samples text by iteratively substituting the given `<mask>` tokens to real tokens. 
 
 <p align="center">
   <img src="https://github.com/ML-GSAI/LLaDA/blob/main/imgs/example_gradio.gif" alt="LLaDA demo" width="80%">
@@ -92,7 +92,7 @@ sbatch --nodes=4 --gres=gpu:8 scripts/train.slurm.sh \
     --learning_rate 5e-5
 ```
 
-After training, you can use the [generate.py](/examples/editflow/generate.py) scripts to provide a visualized decoding trace to see how the model performs *insertion* and *deletion* beyond regular mask *substitutions*. See [Sampling](#sampling) for details.
+After training, you can use the [sample.py](/examples/editflow/sample.py) scripts to provide a visualized decoding trace to see how the model performs *insertion* and *deletion* beyond regular mask *substitutions*. See [Sampling](#sampling) for details.
 
 
 ### Pretraining & Finetuning from scratch
@@ -131,17 +131,17 @@ sbatch --nodes=1 --gres=gpu:8 scripts/train.slurm.sh \
 
 ## Sampling
 
-After training, you can visualize how the model performs mask substitution, insertion, and deletion during generation with [generate.py](/examples/editflow/generate.py). Inserted tokens appear <span style="color:blue; font-weight:bold">blue</span>, and tokens substituted from `<mask>` appear <span style="color:black; font-weight:bold">black</span>, and deleted tokens are shown with a strikethrough before they disappear.
+After training, you can visualize how the model performs mask substitution, insertion, and deletion during sampling with [sample.py](/examples/editflow/sample.py). Inserted tokens appear <span style="color:blue; font-weight:bold">blue</span>, and tokens substituted from `<mask>` appear <span style="color:black; font-weight:bold">black</span>, and deleted tokens are shown with a strikethrough before they disappear.
 
 ```shell
-# Generate a long sequence to visualize insertions after 128 <mask> tokens
-python examples/editflow/generate.py \
+# Sample a long sequence to visualize insertions after 128 <mask> tokens
+python examples/editflow/sample.py \
   --model_name_or_path "models/EditFlow-LLaDA-8B-Instruct-Adapt/tulu-3-sft-mixture/checkpoint-final" \
   --tau 0.02 --mask_length 128 --seed 7070 \
   --prompt "write a romantic story" --make_gif
 
-# Generate a short sequence to visualize deletions after 128 <mask> tokens
-python examples/editflow/generate.py \
+# Sample a short sequence to visualize deletions after 128 <mask> tokens
+python examples/editflow/sample.py \
   --model_name_or_path "models/EditFlow-LLaDA-8B-Instruct-Adapt/tulu-3-sft-mixture/checkpoint-final" \
   --tau 0.02 --mask_length 128 --seed 7070 \
   --prompt "write a single-sentence romantic story" --make_gif

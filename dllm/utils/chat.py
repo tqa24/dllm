@@ -111,10 +111,10 @@ def visualize_histories(tokenizer, histories):
 # ============================================================
 # Modes
 # ============================================================
-def single_turn_generate(generator, gen_config, visualize: bool):
+def single_turn_sampling(sampler, sampler_config, visualize: bool):
     print()
     print(banner_line("continuation mode"))
-    model, tokenizer = generator.model, generator.tokenizer
+    model, tokenizer = sampler.model, sampler.tokenizer
 
     while True:
         print(banner_line("<Type your prompt below. Press Ctrl+C to exit.>", fill=" "))
@@ -131,7 +131,7 @@ def single_turn_generate(generator, gen_config, visualize: bool):
         #     continue
 
         inputs = tokenizer([user_text], add_special_tokens=False)["input_ids"]
-        outputs = generator.generate(inputs, gen_config, return_dict_in_generate=True)
+        outputs = sampler.sample(inputs, sampler_config, return_dict=True)
         text = dllm.utils.decode_trim(tokenizer, outputs.sequences.tolist(), inputs)[0]
 
         print(banner_line("Output"))
@@ -142,12 +142,12 @@ def single_turn_generate(generator, gen_config, visualize: bool):
             visualize_histories(tokenizer, outputs.histories)
 
 
-def multi_turn_chat(generator, gen_config, visualize: bool):
+def multi_turn_chat(sampler, sampler_config, visualize: bool):
     # """Chat mode with chat template & message history."""
     print()
     print(banner_line("multi-turn chat mode"))
     print(banner_line("<Starting a new chat. Type your message.>", fill=" "))
-    model, tokenizer = generator.model, generator.tokenizer
+    model, tokenizer = sampler.model, sampler.tokenizer
 
     messages: List[dict] = []
     round_idx = 0
@@ -163,7 +163,7 @@ def multi_turn_chat(generator, gen_config, visualize: bool):
         messages.append({"role": "user", "content": user_msg})
         inputs = build_chat_inputs(tokenizer, [messages], add_generation_prompt=True)
 
-        outputs = generator.generate(inputs, gen_config, return_dict_in_generate=True)
+        outputs = sampler.sample(inputs, sampler_config, return_dict=True)
         reply = dllm.utils.decode_trim(tokenizer, outputs.sequences.tolist(), inputs)[0]
 
         print(DIV)

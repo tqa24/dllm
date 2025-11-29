@@ -1,9 +1,9 @@
 """
-Minimal EditFlow τ-leap generator for EditBase-Dream with diffusion-style visualization.
+Minimal EditFlow τ-leap sampler for EditBase-Dream with diffusion-style visualization.
 
 What changed vs. your original:
 - tau_leap_step_minimal returns (x_next, any_edit, step_trace) preserving all intermediates.
-- generate_editflow_minimal returns (final_text, trace).
+- sample_editflow_minimal returns (final_text, trace).
 - render_consecutive_trace_gif(trace, tokenizer, ...) draws a GIF where each frame shows
   ONLY the current output (like the Gemini diffusion page shows progressive refinement):
     * SUB tokens in the current frame are orange
@@ -12,7 +12,7 @@ What changed vs. your original:
     * If any deletions happened in the step, the title shows ⌫N (red)
 """
 
-# srun -p $PARTITION --quotatype=$QUOTATYPE --gres=gpu:1 --time=03:00:000 python examples/editflow/generate.py --model_name_or_path "models/EditFlow-Dream-Instruct-7B/tulu-3-sft-mixture/checkpoint-final"  --tau 0.02 --mask_length 128 --seed 7070  --prompt "write a romantic story" --make_gif
+# srun -p $PARTITION --quotatype=$QUOTATYPE --gres=gpu:1 --time=03:00:000 python examples/editflow/sample.py --model_name_or_path "models/EditFlow-Dream-Instruct-7B/tulu-3-sft-mixture/checkpoint-final"  --tau 0.02 --mask_length 128 --seed 7070  --prompt "write a romantic story" --make_gif
 
 import math
 from dataclasses import dataclass
@@ -84,7 +84,7 @@ def tau_leap_step_minimal(
 
     Viz-only convention:
       • Any local annotated as _Ann[*, "viz-only"] is used only for human-visible
-        tracing / debugging (console logs, GIFs) and does not affect generation.
+        tracing / debugging (console logs, GIFs) and does not affect sampling.
       • Such variables are also prefixed with '_' for quick visual scanning.
 
     Returns:
@@ -231,11 +231,11 @@ def tau_leap_step_minimal(
     return x_next, any_edit, _step_trace, out_for_next
 
 
-# -------------------------------- top-level generate -------------------------------
+# -------------------------------- top-level sampling -------------------------------
 
 
 @torch.no_grad()
-def generate_editflow_minimal(
+def sample_editflow_minimal(
     model: PreTrainedModel,
     tokenizer: PreTrainedTokenizer,
     args,
@@ -248,7 +248,7 @@ def generate_editflow_minimal(
     Notes on annotations:
       • Any local annotated with Annotated[..., "viz-only"] is only used to build
         the decode trace for visualization (e.g., GIF rendering) and has no effect
-        on the actual generation. Such variables are also prefixed with '_' to make
+        on the actual sampling. Such variables are also prefixed with '_' to make
         this visually obvious in code.
     """
     torch.manual_seed(cfg.seed)
@@ -356,7 +356,7 @@ def main():
             "Allow delete/substitute and insertions in the prompt region (BOS+prompt).",
         ] = False
 
-        # Generation-related args
+        # Sampling-related args
         tau: Annotated[float, "τ-leap size"] = 0.01
         time_epsilon: Annotated[
             float, "Match this with the `time_epsilon` arg used in your EditFlowTrainer"
@@ -372,7 +372,7 @@ def main():
         verbose: Annotated[bool, "Whether to show intermediate decoding traces"] = True
 
         # Visualization
-        make_gif: Annotated[bool, "Render a decoding trace GIF after generation."] = (
+        make_gif: Annotated[bool, "Render a decoding trace GIF after sampling."] = (
             False
         )
         gif_path: Annotated[
@@ -398,7 +398,7 @@ def main():
     ).eval()
     tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
 
-    final_text, trace = generate_editflow_minimal(model, tokenizer, args, cfg)
+    final_text, trace = sample_editflow_minimal(model, tokenizer, args, cfg)
     print(final_text)
 
     if args.make_gif:

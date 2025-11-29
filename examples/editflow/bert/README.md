@@ -5,7 +5,7 @@
 
 ## Warmup
 
-In this section, we show toy examples of pretraining and SFTing [`ModernBERT-large`](https://huggingface.co/answerdotai/ModernBERT-large) on small datasets to generate text with EditFlow.
+In this section, we show toy examples of pretraining and SFTing [`ModernBERT-large`](https://huggingface.co/answerdotai/ModernBERT-large) on small datasets to sample text with EditFlow.
 You can use any BERT model instead for example, by `--model_name_or_path "FacebookAI/roberta-large"`.
 
 ### Pretrain
@@ -29,7 +29,7 @@ PYTHONPATH=. accelerate launch --config_file scripts/accelerate_configs/ddp.yaml
 
 To run inference with the model:
 ```shell
-PYTHONPATH=. python examples/editflow/generate.py \
+PYTHONPATH=. python examples/editflow/sample.py \
     --model_name_or_path "models/editflow/ModernBERT-large/tiny-shakespeare/checkpoint-final" \
     --tau 0.01 --mask_length 64 --seed 42 --make_gif
 
@@ -55,7 +55,7 @@ PYTHONPATH=. accelerate launch --config_file scripts/accelerate_configs/zero2.ya
 
 To run inference with the model:
 ```shell
-PYTHONPATH=. python examples/editflow/generate.py \
+PYTHONPATH=. python examples/editflow/sample.py \
     --model_name_or_path "models/editflow/ModernBERT-large/alpaca/checkpoint-final" \
     --prompt "Could you please write a poem for me?" --tau 0.01 --mask_length 64 --seed 42 --make_gif
 

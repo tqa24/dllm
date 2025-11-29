@@ -7,7 +7,6 @@ from dataclasses import dataclass
 import transformers
 
 import dllm
-from dllm.pipelines import llada
 
 
 @dataclass
@@ -23,7 +22,7 @@ class ScriptArguments:
 
 
 @dataclass
-class GeneratorConfig(llada.LLaDAGeneratorConfig):
+class SamplerConfig(dllm.core.samplers.MDLMSamplerConfig):
     steps: int = 128
     max_new_tokens: int = 128
     block_length: int = 64
@@ -32,19 +31,19 @@ class GeneratorConfig(llada.LLaDAGeneratorConfig):
     right_shift_logits: bool = True
 
 
-parser = transformers.HfArgumentParser((ScriptArguments, GeneratorConfig))
-script_args, gen_config = parser.parse_args_into_dataclasses()
+parser = transformers.HfArgumentParser((ScriptArguments, SamplerConfig))
+script_args, sampler_config = parser.parse_args_into_dataclasses()
 transformers.set_seed(script_args.seed)
 
 # Load model & tokenizer
 model = dllm.utils.get_model(model_args=script_args).eval()
 tokenizer = dllm.utils.get_tokenizer(model_args=script_args)
-generator = llada.LLaDAGenerator(model=model, tokenizer=tokenizer)
+sampler = dllm.core.samplers.MDLMSampler(model=model, tokenizer=tokenizer)
 terminal_visualizer = dllm.utils.TerminalVisualizer(tokenizer=tokenizer)
 
-# --- Example 1: Batch generation ---
+# --- Example 1: Batch sampling ---
 print("\n" + "=" * 80)
-print("TEST: generate()".center(80))
+print("TEST: sample()".center(80))
 print("=" * 80)
 
 messages = [
@@ -57,7 +56,7 @@ inputs = tokenizer.apply_chat_template(
     add_generation_prompt=True,
     tokenize=True,
 )
-outputs = generator.generate(inputs, gen_config, return_dict_in_generate=True)
+outputs = sampler.sample(inputs, sampler_config, return_dict=True)
 sequences = dllm.utils.decode_trim(tokenizer, outputs.sequences.tolist(), inputs)
 
 for iter, s in enumerate(sequences):

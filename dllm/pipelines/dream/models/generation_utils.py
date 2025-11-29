@@ -111,7 +111,7 @@ class DreamGenerationConfig(GenerationConfig):
 
         # Parameters that define the output variables of `generate`
         self.num_return_sequences: int = kwargs.pop("num_return_sequences", 1)
-        self.return_dict_in_generate: bool = kwargs.pop("return_dict_in_generate", False)
+        self.return_dict: bool = kwargs.pop("return_dict", False)
         self.output_history: bool = kwargs.pop("output_history", False)
 
         # Special tokens that can be used at generation time
@@ -372,7 +372,7 @@ class DreamGenerationMixin:
         # init values
         
         output_history = generation_config.output_history
-        return_dict_in_generate = generation_config.return_dict_in_generate
+        return_dict = generation_config.return_dict
         max_length = generation_config.max_length
         mask_token_id = generation_config.mask_token_id
         steps = generation_config.steps
@@ -383,7 +383,7 @@ class DreamGenerationMixin:
         top_p = generation_config.top_p
         top_k = generation_config.top_k
 
-        histories = [] if (return_dict_in_generate and output_history) else None
+        histories = [] if (return_dict and output_history) else None
 
         # pad input_ids to max_length
         x = F.pad(input_ids, (0, max_length - input_ids.shape[1]), value=mask_token_id)
@@ -456,7 +456,7 @@ class DreamGenerationMixin:
             if histories is not None:
                 histories.append(x.clone())
         
-        if return_dict_in_generate:
+        if return_dict:
             return DreamModelOutput(
                 sequences=x,
                 history=histories,

@@ -5,7 +5,7 @@
 
 This directory provides two key sets of resources:
 
--  **[Warmup](#warmup)**: Tutorial scripts for continual pretraining and SFTing any BERT-style model on small datasets to generate text.
+-  **[Warmup](#warmup)**: Tutorial scripts for continual pretraining and SFTing any BERT-style model on small datasets to sample text.
 -  **[BERT-Chat](#bert-chat)**: The exact training, inference, and evaluation scripts used to create the [`ModernBERT-base-chat-v0`](https://huggingface.co/dllm-collection/ModernBERT-base-chat-v0) and [`ModernBERT-large-chat-v0`](https://huggingface.co/dllm-collection/ModernBERT-large-chat-v0) 🤗checkpoints, two BERTs finetuned as Chatbots. For a deep dive into experimental results, lessons learned, and more reproduction details, please see our full [![blog](https://img.shields.io/badge/W&B-white?logo=weightsandbiases) BERT-Chat Report](https://api.wandb.ai/links/asap-zzhou/101h5xvg).
 
 <p align="center" style="margin-top: 15px;">
@@ -23,7 +23,7 @@ This directory provides two key sets of resources:
 examples/bert
 ├── chat.py                         # Interactive inference example
 ├── eval.sh                         # Automatic evaluation example
-├── generate.py                     # Inference example
+├── sample.py                       # Inference example
 ├── pt.py                           # Pretraining example
 ├── README.md                       # Documentation (you are here)
 └── sft.py                          # Supervised finetuning example
@@ -31,7 +31,7 @@ examples/bert
 
 ## Warmup
 
-In this section, we show toy examples of continual pretraining and SFTing [`ModernBERT-large`](https://huggingface.co/answerdotai/ModernBERT-large) on small datasets to generate text.
+In this section, we show toy examples of continual pretraining and SFTing [`ModernBERT-large`](https://huggingface.co/answerdotai/ModernBERT-large) on small datasets to sample text.
 You can use any BERT model instead for example, by `--model_name_or_path "FacebookAI/roberta-large"`.
 
 ### Continual Pretraining
@@ -55,7 +55,7 @@ accelerate launch --config_file scripts/accelerate_configs/ddp.yaml --num_proces
 
 To run the model for interactive inference:
 ```shell
-# just press enter (empty prompt) if you want the model to generate text from scratch 
+# just press enter (empty prompt) if you want the model to sample text from scratch 
 python -u examples/bert/chat.py \
     --model_name_or_path "models/ModernBERT-large/tiny-shakespeare/checkpoint-final" \
     --chat False --remasking "random" --steps 128 --max_new_tokens 128
@@ -133,7 +133,7 @@ python -u examples/bert/chat.py --model_name_or_path "dllm-collection/ModernBERT
 
 For example, to evaluate [`ModernBERT-large-chat-v0`](https://huggingface.co/dllm-collection/ModernBERT-large-chat-v0) on [`gsm8k`](https://huggingface.co/datasets/openai/gsm8k) using 4 GPUs, run:
 ```shell
-# use model_args to adjust the generation arguments for evalution.
+# use model_args to adjust the sampler arguments for evalution.
 accelerate launch --num_processes 4 \
     dllm/pipelines/bert/eval.py \
     --tasks "gsm8k_bert" \

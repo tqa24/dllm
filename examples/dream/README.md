@@ -28,7 +28,7 @@ dllm/pipelines/dream
 │   ├── modeling_dream.py           # Core Dream model architecture
 │   └── tokenization_dream.py       # Tokenizer implementation for Dream
 ├── eval.py                         # Evaluation module
-├── generator.py                    # Inference module
+├── sampler.py                      # Inference module
 ├── trainer.py                      # Training module (pretraining and SFT)
 └── utils.py                        # Auxiliary utilities and helper functions
 
@@ -36,7 +36,7 @@ dllm/pipelines/dream
 examples/dream
 ├── chat.py                         # Interactive inference example
 ├── eval.sh                         # Automatic evaluation example
-├── generate.py                     # Inference example
+├── sample.py                       # Inference example
 ├── pt.py                           # Pretraining example
 ├── README.md                       # Documentation (you are here)
 └── sft.py                          # Supervised finetuning example
@@ -122,10 +122,9 @@ sbatch --nodes=24 --gres=gpu:8 scripts/train.slurm.sh \
 ```
 
 ## Inference
-We support batch inference for standard generation and infilling:
-<!-- See [`examples/dream/generate.py`](/examples/dream/generate.py) for a full example: -->
+We support batch inference for standard sampling and infilling:
 ```shell
-python examples/dream/generate.py --model_name_or_path "Dream-org/Dream-v0-Instruct-7B"
+python examples/dream/sample.py --model_name_or_path "Dream-org/Dream-v0-Instruct-7B"
 ```
 We also support interactive multi-turn dialogue with visualization:
 ```shell
@@ -137,7 +136,7 @@ python examples/dream/chat.py --model_name_or_path "Dream-org/Dream-v0-Instruct-
 
 For example, to evaluate [`Dream-v0-Instruct-7B`](https://huggingface.co/Dream-org/Dream-v0-Instruct-7B) on [`gsm8k`](https://huggingface.co/datasets/openai/gsm8k) using 4 GPUs, run:
 ```shell
-# Use model_args to adjust the generation arguments for evalution.
+# Use model_args to adjust the sampler arguments for evalution.
 accelerate launch --num_processes 4 \
     dllm/pipelines/dream/eval.py \
     --tasks "gsm8k_cot" \

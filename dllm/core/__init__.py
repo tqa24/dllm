@@ -1,1 +1,1 @@
-from dllm.core import trainers, schedulers, generators
+from dllm.core import trainers, schedulers, samplers

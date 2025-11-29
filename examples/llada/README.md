@@ -34,14 +34,14 @@ dllm/pipelines/llada
 │   ├── modeling_lladamoe.py        # LLaDA-MoE model architecture
 │   └── modeling_llada.py           # LLaDA model architecture
 ├── eval.py                         # Evaluation module
-├── generator.py                    # Inference module
+├── sampler.py                      # Inference module
 └── trainer.py                      # Training module (pretraining and SFT)
 
 # example entry points for training / inference / evaluation
 examples/llada
 ├── chat.py                         # Interactive inference example
 ├── eval.sh                         # Automatic evaluation example
-├── generate.py                     # Inference example
+├── sample.py                       # Inference example
 ├── pt.py                           # Pretraining example
 ├── README.md                       # Documentation (you are here)
 └── sft.py                          # Supervised finetuning example
@@ -135,13 +135,11 @@ sbatch --nodes=24 --gres=gpu:8 scripts/train.slurm.sh \
 ```
 
 ## Inference
-We support batch inference for standard generation and infilling:
-<!-- See [`examples/llada/generate.py`](/examples/llada/generate.py) for a full example: -->
+We support batch inference for standard sampling and infilling:
 ```shell
-python examples/llada/generate.py --model_name_or_path "GSAI-ML/LLaDA-8B-Instruct"
+python examples/llada/sample.py --model_name_or_path "GSAI-ML/LLaDA-8B-Instruct"
 ```
 We also support interactive multi-turn dialogue with visualization:
-<!-- See [`examples/llada/chat.py`](/examples/llada/chat.py) for a full example. -->
 ```shell
 python examples/llada/chat.py --model_name_or_path "GSAI-ML/LLaDA-8B-Instruct"
 ```
@@ -151,7 +149,7 @@ python examples/llada/chat.py --model_name_or_path "GSAI-ML/LLaDA-8B-Instruct"
 
 For example, to evaluate [LLaDA-8B-Instruct](https://huggingface.co/GSAI-ML/LLaDA-8B-Instruct) on [gsm8k](https://huggingface.co/datasets/openai/gsm8k) using 4 GPUs, run:
 ```shell
-# Use model_args to adjust the generation arguments for evalution.
+# Use model_args to adjust the sampling arguments for evalution.
 accelerate launch --num_processes 4 \
     dllm/pipelines/llada/eval.py \
     --tasks "gsm8k_cot" \

@@ -23,11 +23,10 @@ from lm_eval.api.registry import register_model
 from lm_eval.models.utils import get_dtype
 
 import dllm
-from dllm.pipelines.llada import LLaDAGenerator, LLaDAGeneratorConfig
-
+from dllm.core.samplers import MDLMSampler, MDLMSamplerConfig
 
 @dataclass
-class LLaDAEvalConfig(LLaDAGeneratorConfig):
+class LLaDAEvalConfig(MDLMSamplerConfig):
     # According to LLaDA's opencompass implementation: https://github.com/ML-GSAI/LLaDA/blob/main/opencompass/opencompass/models/dllm.py
     max_new_tokens: int = 1024
     max_length: int = 4096
@@ -120,7 +119,7 @@ class LLaDAEvalHarness(LM):
             SimpleNamespace(model_name_or_path=pretrained, model=self.model)
         )
 
-        # generation params
+        # sampler params
         self.mask_id = self.tokenizer.mask_token_id
         self.batch_size = int(batch_size)
         self.max_length = max_length
@@ -342,12 +341,12 @@ class LLaDAEvalHarness(LM):
         ds = ds.with_format("torch")
 
         out = []
-        generator = LLaDAGenerator(model=self.model, tokenizer=self.tokenizer)
+        sampler = MDLMSampler(model=self.model, tokenizer=self.tokenizer)
 
         for elem in tqdm(ds, desc="Generating..."):
             prompt = [elem["question"].to(self.device)]
             stop_tokens = elem["until"]
-            generated_ids = generator.generate(
+            generated_ids = sampler.sample(
                 inputs=prompt,
                 steps=self.steps,
                 max_new_tokens=self.max_new_tokens,

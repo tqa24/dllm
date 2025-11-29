@@ -1,5 +1,5 @@
 """
-python -u examples/dream/generate.py --model_name_or_path "YOUR_MODEL_PATH"
+python -u examples/llada/sample.py --model_name_or_path "YOUR_MODEL_PATH"
 """
 
 from dataclasses import dataclass
@@ -7,12 +7,11 @@ from dataclasses import dataclass
 import transformers
 
 import dllm
-from dllm.pipelines import dream
 
 
 @dataclass
 class ScriptArguments:
-    model_name_or_path: str = "Dream-org/Dream-v0-Instruct-7B"
+    model_name_or_path: str = "GSAI-ML/LLaDA-8B-Instruct"
     seed: int = 42
     visualize: bool = True
 
@@ -23,28 +22,27 @@ class ScriptArguments:
 
 
 @dataclass
-class GeneratorConfig(dream.DreamGeneratorConfig):
+class SamplerConfig(dllm.core.samplers.MDLMSamplerConfig):
     steps: int = 128
     max_new_tokens: int = 128
-    temperature: float = 0.2
-    top_p: float = 0.95
-    alg: str = "entropy"
-    alg_temp: float = 0.0
+    block_length: int = 32
+    temperature: float = 0.0
+    remasking: str = "low_confidence"
 
 
-parser = transformers.HfArgumentParser((ScriptArguments, GeneratorConfig))
-script_args, gen_config = parser.parse_args_into_dataclasses()
+parser = transformers.HfArgumentParser((ScriptArguments, SamplerConfig))
+script_args, sampler_config = parser.parse_args_into_dataclasses()
 transformers.set_seed(script_args.seed)
 
 # Load model & tokenizer
 model = dllm.utils.get_model(model_args=script_args).eval()
 tokenizer = dllm.utils.get_tokenizer(model_args=script_args)
-generator = dream.DreamGenerator(model=model, tokenizer=tokenizer)
+sampler = dllm.core.samplers.MDLMSampler(model=model, tokenizer=tokenizer)
 terminal_visualizer = dllm.utils.TerminalVisualizer(tokenizer=tokenizer)
 
-# --- Example 1: Batch generation ---
+# --- Example 1: Batch sampling ---
 print("\n" + "=" * 80)
-print("TEST: dream.generate()".center(80))
+print("TEST: llada.sample()".center(80))
 print("=" * 80)
 
 messages = [
@@ -58,7 +56,7 @@ inputs = tokenizer.apply_chat_template(
     tokenize=True,
 )
 
-outputs = generator.generate(inputs, gen_config, return_dict_in_generate=True)
+outputs = sampler.sample(inputs, sampler_config, return_dict=True)
 sequences = dllm.utils.decode_trim(tokenizer, outputs.sequences.tolist(), inputs)
 
 for iter, s in enumerate(sequences):
@@ -73,7 +71,7 @@ if script_args.visualize:
 
 # --- Example 2: Batch fill-in-the-blanks ---
 print("\n" + "=" * 80)
-print("TEST: dream.infilling()".center(80))
+print("TEST: llada.infilling()".center(80))
 print("=" * 80)
 
 masked_messages = [
@@ -99,7 +97,7 @@ inputs = tokenizer.apply_chat_template(
     tokenize=True,
 )
 
-outputs = generator.infill(inputs, gen_config, return_dict_in_generate=True)
+outputs = sampler.infill(inputs, sampler_config, return_dict=True)
 sequences = dllm.utils.decode_trim(tokenizer, outputs.sequences.tolist(), inputs)
 
 for iter, (i, s) in enumerate(zip(inputs, sequences)):

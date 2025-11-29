@@ -15,17 +15,19 @@ class MDLMTrainer(transformers.Trainer):
 
     def __init__(
         self,
-        *args,
         scheduler: BaseAlphaScheduler | None = None,
         time_epsilon: float = 1e-3,
         loss_weight_type: str = "scheduler",  # "ones"
         right_shift_logits: bool = False,
+        *args,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
-        self.scheduler = scheduler or LinearAlphaScheduler()
+
         if not (0.0 < time_epsilon < 1.0):
             raise ValueError("time_epsilon must be in (0, 1)")
+
+        self.scheduler = scheduler or LinearAlphaScheduler()
         self.time_epsilon = time_epsilon
         self.loss_weight_type = loss_weight_type
         self.right_shift_logits = right_shift_logits

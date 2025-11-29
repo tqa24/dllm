@@ -44,11 +44,16 @@ class DreamTrainer(MDLMTrainer):
 
     def __init__(
         self,
-        *args,
         loss_weight_type: str = "cart[geo_p:0.3]",
+        *args,
         **kwargs,
     ):
-        super().__init__(*args, loss_weight_type=loss_weight_type, **kwargs)
+        super().__init__(
+            loss_weight_type=loss_weight_type,
+            *args,
+            **kwargs,
+        )
+
         self.right_shift_logits = True
 
     def _compute_loss_weights(

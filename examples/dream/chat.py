@@ -1,12 +1,12 @@
 """
-Interactive chat / generation script for Dream models.
+Interactive chat / sampling script for Dream models.
 
 Examples
 --------
 # Chat mode (multi-turn, chat template)
 python -u examples/dream/chat.py --model_name_or_path "YOUR_MODEL_PATH" --chat True
 
-# Raw single-turn generation
+# Raw single-turn sampling
 python -u examples/dream/chat.py --model_name_or_path "YOUR_MODEL_PATH" --chat False
 """
 
@@ -26,14 +26,14 @@ class ScriptArguments:
     visualize: bool = True
 
     def __post_init__(self):
-        # same base-path resolution logic as in generate.py
+        # same base-path resolution logic as in sample.py
         self.model_name_or_path = dllm.utils.resolve_with_base_env(
             self.model_name_or_path, "BASE_MODELS_DIR"
         )
 
 
 @dataclass
-class GeneratorConfig(dream.DreamGeneratorConfig):
+class SamplerConfig(dream.DreamSamplerConfig):
     steps: int = 128
     max_new_tokens: int = 128
     temperature: float = 0.2
@@ -43,25 +43,25 @@ class GeneratorConfig(dream.DreamGeneratorConfig):
 
 
 def main():
-    parser = transformers.HfArgumentParser((ScriptArguments, GeneratorConfig))
-    script_args, gen_config = parser.parse_args_into_dataclasses()
+    parser = transformers.HfArgumentParser((ScriptArguments, SamplerConfig))
+    script_args, sampler_config = parser.parse_args_into_dataclasses()
     transformers.set_seed(script_args.seed)
 
     model = dllm.utils.get_model(model_args=script_args).eval()
     tokenizer = dllm.utils.get_tokenizer(model_args=script_args)
-    generator = dream.DreamGenerator(model=model, tokenizer=tokenizer)
+    sampler = dream.DreamSampler(model=model, tokenizer=tokenizer)
 
     if script_args.chat:
         dllm.utils.multi_turn_chat(
-            generator=generator,
-            gen_config=gen_config,
+            sampler=sampler,
+            sampler_config=sampler_config,
             visualize=script_args.visualize,
         )
     else:
-        print("\nSingle-turn generation (no chat template).")
-        dllm.utils.single_turn_generate(
-            generator=generator,
-            gen_config=gen_config,
+        print("\nSingle-turn sampling (no chat template).")
+        dllm.utils.single_turn_sampling(
+            sampler=sampler,
+            sampler_config=sampler_config,
             visualize=script_args.visualize,
         )
 
