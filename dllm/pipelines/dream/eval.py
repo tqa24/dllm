@@ -36,7 +36,7 @@ class DreamEvalConfig(DreamGeneratorConfig):
     top_p: float | None = None
     top_k: float | None = None
     max_new_tokens: int = 128
-    max_length: int = 2048
+    max_length: int = 4096
     steps: int = 128
     temperature: float = 0.0
     alg: str = "entropy"
@@ -244,7 +244,7 @@ class DreamEvalHarness(LM):
                 seq[prompt_lens[i] :] for i, seq in enumerate(cleaned_generation_ids)
             ]
             responses = [
-                g.lstrip("<|endoftext|>").split(self.tokenizer.eos_token, 1)[0]
+                g.removeprefix("<|endoftext|>").split(self.tokenizer.eos_token, 1)[0]
                 for g in self.tokenizer.batch_decode(truncated_generation_ids)
             ]
 

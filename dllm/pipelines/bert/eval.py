@@ -39,7 +39,7 @@ class BERTEvalConfig(LLaDAGeneratorConfig):
     dtype: str | torch.dtype = "auto"
     batch_size: int = 32
     mc_num: int = 128
-    is_check_greedy: bool = True
+    is_check_greedy: bool = False
     device: str = "cuda"
 
 

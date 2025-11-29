@@ -71,6 +71,7 @@ class DreamGeneratorConfig(GeneratorConfig):
     top_p: float = 1.0
     top_k: int = 50
     stochastic_transfer: bool = False
+    right_shift_logits: bool = True
 
 
 @dataclass
@@ -109,6 +110,7 @@ class DreamGenerator(BaseGenerator):
         return_dict_in_generate = kwargs.get(
             "return_dict_in_generate", config.return_dict_in_generate
         )
+        right_shift_logits = kwargs.get("right_shift_logits", config.right_shift_logits)
 
         # --- Initialization ---
         mask_token_id = self.tokenizer.mask_token_id
@@ -166,7 +168,10 @@ class DreamGenerator(BaseGenerator):
             mask_index = x == mask_token_id
 
             logits = self.model(x, attention_mask, pos_id).logits
-            logits = torch.cat([logits[:, :1], logits[:, :-1]], dim=1)
+
+            if right_shift_logits:
+                logits = torch.cat([logits[:, :1], logits[:, :-1]], dim=1)
+
             logits = generation_logits_hook_func(i, x, logits)
 
             mask_logits = logits[mask_index]
@@ -306,6 +311,7 @@ class DreamGenerator(BaseGenerator):
         return_dict_in_generate = kwargs.get(
             "return_dict_in_generate", config.return_dict_in_generate
         )
+        right_shift_logits = kwargs.get("right_shift_logits", config.right_shift_logits)
 
         # --- Initialization ---
         mask_token_id = self.tokenizer.mask_token_id
@@ -358,7 +364,9 @@ class DreamGenerator(BaseGenerator):
 
             # Forward pass, then AR-shift to predict token at position i+1
             logits = self.model(x, attention_mask, pos_id).logits
-            logits = torch.cat([logits[:, :1], logits[:, :-1]], dim=1)
+            if right_shift_logits:
+                logits = torch.cat([logits[:, :1], logits[:, :-1]], dim=1)
+
             logits = generation_logits_hook_func(i, x, logits)
 
             # Logits restricted to current `[MASK]` positions

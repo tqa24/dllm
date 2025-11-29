@@ -44,6 +44,8 @@ class LLaDAGeneratorConfig(GeneratorConfig):
     stochastic_transfer: bool = False
     cfg_scale: float = 0.0
     cfg_keep_tokens: list[int] | None = None
+    suppress_tokens: list[int] | None = None
+    begin_suppress_tokens: list[int] | None = None
     right_shift_logits: bool = False
 
 
@@ -68,6 +70,7 @@ class LLaDAGenerator(BaseGenerator):
         cfg_scale = kwargs.get("cfg_scale", config.cfg_scale)
         cfg_keep_tokens = kwargs.get("cfg_keep_tokens", config.cfg_keep_tokens)
         remasking = kwargs.get("remasking", config.remasking)
+        suppress_tokens = kwargs.get("suppress_tokens", config.suppress_tokens)
         stochastic_transfer = kwargs.get(
             "stochastic_transfer", config.stochastic_transfer
         )
@@ -75,6 +78,9 @@ class LLaDAGenerator(BaseGenerator):
             "return_dict_in_generate", config.return_dict_in_generate
         )
         right_shift_logits = kwargs.get("right_shift_logits", config.right_shift_logits)
+        begin_suppress_tokens = kwargs.get(
+            "begin_suppress_tokens", config.begin_suppress_tokens
+        )
 
         assert 1 <= block_length
         assert 1 <= steps
@@ -165,6 +171,10 @@ class LLaDAGenerator(BaseGenerator):
                     logits = self.model(
                         x, attention_mask=attention_mask
                     ).logits  # Use attention mask here
+                
+                if suppress_tokens is not None and len(suppress_tokens) > 0:
+                    for token_id in suppress_tokens:
+                        logits[:, :, token_id] = -torch.inf
 
                 if right_shift_logits:
                     logits = torch.cat([logits[:, :1], logits[:, :-1]], dim=1)
@@ -174,6 +184,10 @@ class LLaDAGenerator(BaseGenerator):
                 x0 = torch.argmax(
                     logits_with_noise, dim=-1
                 )  # [B, T] predicted token ids
+
+                if begin_suppress_tokens is not None and len(begin_suppress_tokens) > 0:
+                    for token_id in begin_suppress_tokens:
+                        logits[:, :, token_id] = -torch.inf
 
                 # Per-position confidence used to pick which masks to commit this step
                 if remasking == "low_confidence":
@@ -242,6 +256,7 @@ class LLaDAGenerator(BaseGenerator):
         cfg_scale = kwargs.get("cfg_scale", config.cfg_scale)
         cfg_keep_tokens = kwargs.get("cfg_keep_tokens", config.cfg_keep_tokens)
         remasking = kwargs.get("remasking", config.remasking)
+        suppress_tokens = kwargs.get("suppress_tokens", config.suppress_tokens)
         stochastic_transfer = kwargs.get(
             "stochastic_transfer", config.stochastic_transfer
         )
@@ -249,6 +264,9 @@ class LLaDAGenerator(BaseGenerator):
             "return_dict_in_generate", config.return_dict_in_generate
         )
         right_shift_logits = kwargs.get("right_shift_logits", config.right_shift_logits)
+        begin_suppress_tokens = kwargs.get(
+            "begin_suppress_tokens", config.begin_suppress_tokens
+        )
 
         mask_id = self.tokenizer.mask_token_id
         eos_id = self.tokenizer.eos_token_id
@@ -339,12 +357,20 @@ class LLaDAGenerator(BaseGenerator):
                         x, attention_mask=attention_mask
                     ).logits  # Use attention mask here
 
+                if suppress_tokens is not None and len(suppress_tokens) > 0:
+                    for token_id in suppress_tokens:
+                        logits[:, :, token_id] = -torch.inf
+
                 if right_shift_logits:
                     logits = torch.cat([logits[:, :1], logits[:, :-1]], dim=1)
 
                 # Greedy with optional Gumbel-Max noise
                 logits_with_noise = add_gumbel_noise(logits, temperature=temperature)
-                x0 = torch.argmax(logits_with_noise, dim=-1)  # [B, T]
+                x0 = torch.argmax(logits_with_noise, dim=-1) # [B, T]
+
+                if begin_suppress_tokens is not None and len(begin_suppress_tokens) > 0:
+                    for token_id in begin_suppress_tokens:
+                        logits[:, :, token_id] = -torch.inf
 
                 # Confidence used for choosing which masks to commit this step
                 if remasking == "low_confidence":

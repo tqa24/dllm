@@ -28,6 +28,7 @@ from dllm.pipelines.llada import LLaDAGenerator, LLaDAGeneratorConfig
 
 @dataclass
 class LLaDAEvalConfig(LLaDAGeneratorConfig):
+    # According to LLaDA's opencompass implementation: https://github.com/ML-GSAI/LLaDA/blob/main/opencompass/opencompass/models/dllm.py
     max_new_tokens: int = 1024
     max_length: int = 4096
     steps: int = 1024
@@ -37,12 +38,27 @@ class LLaDAEvalConfig(LLaDAGeneratorConfig):
     dtype: str | torch.dtype = "auto"
     batch_size: int = 32
     mc_num: int = 128
-    is_check_greedy: bool = True
+    is_check_greedy: bool = False
     device: str = "cuda"
-
 
 @register_model("llada")
 class LLaDAEvalHarness(LM):
+    @staticmethod
+    def _parse_token_list(value):
+        """Parse token list from string format like '[126081;126348]' or list."""
+        if isinstance(value, str):
+            value = value.strip()
+            if value.startswith('[') and value.endswith(']'):
+                value = value[1:-1]  # Remove brackets
+            if not value:  # Empty string after removing brackets
+                return []
+            return [int(x.strip()) for x in value.split(';') if x.strip()]
+        elif isinstance(value, list):
+            return value
+        elif value is None:
+            return []
+        return []
+
     def __init__(
         self,
         config: LLaDAEvalConfig | None = None,
@@ -65,6 +81,9 @@ class LLaDAEvalHarness(LM):
         block_length = kwargs.get("block_length", config.block_length)
         max_length = kwargs.get("max_length", config.max_length)
         remasking = kwargs.get("remasking", config.remasking)
+        suppress_tokens = self._parse_token_list(kwargs.get("suppress_tokens", config.suppress_tokens))
+        begin_suppress_tokens = self._parse_token_list(kwargs.get("begin_suppress_tokens", config.begin_suppress_tokens))
+        right_shift_logits = kwargs.get("right_shift_logits", config.right_shift_logits)
 
         accelerator = accelerate.Accelerator()
 
@@ -111,6 +130,9 @@ class LLaDAEvalHarness(LM):
         self.cfg = float(cfg)
         self.remasking = remasking
         self.is_check_greedy = is_check_greedy
+        self.suppress_tokens = suppress_tokens
+        self.begin_suppress_tokens = begin_suppress_tokens
+        self.right_shift_logits = right_shift_logits
 
         # loglikelihood params
         self.mc_num = int(mc_num)
@@ -333,6 +355,9 @@ class LLaDAEvalHarness(LM):
                 temperature=0.0,
                 cfg_scale=self.cfg,
                 remasking=self.remasking,
+                suppress_tokens=self.suppress_tokens,
+                begin_suppress_tokens=self.begin_suppress_tokens,
+                right_shift_logits=self.right_shift_logits
             )
             generated_answer = self.tokenizer.decode(
                 generated_ids[0][prompt[0].shape[0] :], skip_special_tokens=False
