@@ -4,10 +4,10 @@ Interactive chat / sampling script for Dream models.
 Examples
 --------
 # Chat mode (multi-turn, chat template)
-python -u examples/dream/chat.py --model_name_or_path "YOUR_MODEL_PATH" --chat True
+python -u examples/dream/chat.py --model_name_or_path "YOUR_MODEL_PATH"
 
 # Raw single-turn sampling
-python -u examples/dream/chat.py --model_name_or_path "YOUR_MODEL_PATH" --chat False
+python -u examples/dream/chat.py --model_name_or_path "YOUR_MODEL_PATH" --chat_template False
 """
 
 import sys
@@ -22,7 +22,7 @@ from dllm.pipelines import dream
 class ScriptArguments:
     model_name_or_path: str = "Dream-org/Dream-v0-Instruct-7B"
     seed: int = 42
-    chat: bool = True
+    chat_template: bool = True
     visualize: bool = True
 
     def __post_init__(self):
@@ -51,7 +51,7 @@ def main():
     tokenizer = dllm.utils.get_tokenizer(model_args=script_args)
     sampler = dream.DreamSampler(model=model, tokenizer=tokenizer)
 
-    if script_args.chat:
+    if script_args.chat_template:
         dllm.utils.multi_turn_chat(
             sampler=sampler,
             sampler_config=sampler_config,

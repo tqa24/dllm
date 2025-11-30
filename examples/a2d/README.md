@@ -76,7 +76,8 @@ accelerate launch --config_file scripts/accelerate_configs/zero2.yaml --num_proc
 ```
 
 ```shell
-python -u examples/a2d/mdlm/sample.py --model_name_or_path "models/a2d/Qwen3-0.6B/mdlm/alpaca/checkpoint-final" --block_size 32
+python -u examples/a2d/mdlm/chat.py \
+    --model_name_or_path "models/a2d/Qwen3-0.6B/mdlm/alpaca/checkpoint-final" --block_size 32
 ```
 
 ## Warmup: BM3LM
@@ -120,5 +121,6 @@ accelerate launch --config_file scripts/accelerate_configs/zero2.yaml --num_proc
 ```
 
 ```shell
-python -u examples/a2d/bm3lm/sample.py --model_name_or_path "models/a2d/Qwen3-0.6B/bm3lm/alpaca/checkpoint-final" --block_size 32 --chat True
+python -u examples/a2d/bm3lm/chat.py \
+    --model_name_or_path "models/a2d/Qwen3-0.6B/bm3lm/alpaca/checkpoint-final" --block_size 32
 ```

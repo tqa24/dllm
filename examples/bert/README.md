@@ -59,7 +59,7 @@ To run the model for interactive inference:
 # just press enter (empty prompt) if you want the model to generate text from scratch 
 python -u examples/bert/chat.py \
     --model_name_or_path "models/ModernBERT-large/tiny-shakespeare/checkpoint-final" \
-    --chat False --remasking "random" --steps 128 --max_new_tokens 128
+    --chat_template False --remasking "random" --steps 128 --max_new_tokens 128
 ```
 
 ### SFT
@@ -83,7 +83,7 @@ accelerate launch --config_file scripts/accelerate_configs/zero2.yaml --num_proc
 To chat with the model:
 ```shell
 python -u examples/bert/chat.py \
-    --model_name_or_path "models/ModernBERT-large/alpaca/checkpoint-final" --chat True
+    --model_name_or_path "models/ModernBERT-large/alpaca/checkpoint-final"
 ```
 
 ## BERT-Chat
@@ -129,7 +129,7 @@ accelerate launch --config_file scripts/accelerate_configs/zero2.yaml --num_proc
 
 To chat with the model:
 ```shell
-python -u examples/bert/chat.py --model_name_or_path "dllm-collection/ModernBERT-large-chat-v0" --chat True
+python -u examples/bert/chat.py --model_name_or_path "dllm-collection/ModernBERT-large-chat-v0"
 ```
 
 ## Evaluation

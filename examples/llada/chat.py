@@ -4,10 +4,10 @@ Interactive chat / sampling script for LLaDA models.
 Examples
 --------
 # Chat mode (multi-turn, chat template)
-python -u examples/llada/chat.py --model_name_or_path "YOUR_MODEL_PATH" --chat True
+python -u examples/llada/chat.py --model_name_or_path "YOUR_MODEL_PATH"
 
 # Raw single-turn sampling
-python -u examples/llada/chat.py --model_name_or_path "YOUR_MODEL_PATH" --chat False
+python -u examples/llada/chat.py --model_name_or_path "YOUR_MODEL_PATH" --chat_template False
 """
 
 import sys
@@ -21,7 +21,7 @@ import dllm
 class ScriptArguments:
     model_name_or_path: str = "GSAI-ML/LLaDA-8B-Instruct"
     seed: int = 42
-    chat: bool = True
+    chat_template: bool = True
     visualize: bool = True
 
     def __post_init__(self):
@@ -49,7 +49,7 @@ def main():
     tokenizer = dllm.utils.get_tokenizer(model_args=script_args)
     sampler = dllm.core.samplers.MDLMSampler(model=model, tokenizer=tokenizer)
 
-    if script_args.chat:
+    if script_args.chat_template:
         dllm.utils.multi_turn_chat(
             sampler=sampler,
             sampler_config=sampler_config,

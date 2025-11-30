@@ -4,7 +4,7 @@ Interactive chat / sampling script for A2D models.
 Examples
 --------
 # Raw multi-turn sampling (default)
-python -u examples/a2d/bm3lm/chat.py --model_name_or_path "YOUR_MODEL_PATH" --chat True
+python -u examples/a2d/bm3lm/chat.py --model_name_or_path "YOUR_MODEL_PATH"
 """
 
 import sys
@@ -18,7 +18,7 @@ import dllm
 class ScriptArguments:
     model_name_or_path: str = "[TODO]"
     seed: int = 42
-    chat: bool = True
+    chat_template: bool = True
     visualize: bool = True
 
     def __post_init__(self):
@@ -47,7 +47,7 @@ def main():
     tokenizer = dllm.utils.get_tokenizer(model_args=script_args)
     sampler = dllm.core.samplers.BM3LMSampler(model=model, tokenizer=tokenizer)
 
-    if script_args.chat:
+    if script_args.chat_template:
         dllm.utils.multi_turn_chat(
             sampler=sampler,
             sampler_config=sampler_config,
