@@ -5,7 +5,7 @@
 
 ## Warmup
 
-In this section, we show toy examples of pretraining and SFTing [`ModernBERT-large`](https://huggingface.co/answerdotai/ModernBERT-large) on small datasets to sample text with EditFlow.
+In this section, we show toy examples of pretraining and SFTing [`ModernBERT-large`](https://huggingface.co/answerdotai/ModernBERT-large) on small datasets to generate text with EditFlow.
 You can use any BERT model instead for example, by `--model_name_or_path "FacebookAI/roberta-large"`.
 
 ### Pretrain

@@ -32,6 +32,27 @@ class CollatorWrapper:
         outputs = self.after(outputs)
         return outputs
 
+    def __getattr__(self, name: str):
+        """
+        If an attribute is not found on this wrapper, automatically delegate
+        the lookup to `self.collator`.
+
+        This supports arbitrarily nested wrappers, because the inner collator
+        may itself implement `__getattr__`, allowing recursive delegation.
+        """
+        # Python only calls __getattr__ when normal attribute lookup fails,
+        # so it's safe to attempt fetching from the wrapped collator here.
+        collator = self.__dict__.get("collator", None)
+        if collator is not None:
+            try:
+                return getattr(collator, name)
+            except AttributeError:
+                pass  # Fall through and raise below if still not found
+
+        # By protocol, __getattr__ must raise AttributeError if the attribute
+        # truly does not exist anywhere.
+        raise AttributeError(f"{type(self).__name__!r} object has no attribute {name!r}")
+
 
 @dataclass
 class NoAttentionMaskWrapper(CollatorWrapper):

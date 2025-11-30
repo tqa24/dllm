@@ -14,21 +14,7 @@ from dllm.core.samplers.base import (
     SamplerConfig,
     BaseSampler,
 )
-from dllm.core.samplers.utils import get_num_transfer_tokens
-
-
-def add_gumbel_noise(logits: torch.Tensor, temperature: float) -> torch.Tensor:
-    """
-    The Gumbel max is a method for sampling categorical distributions.
-    According to arXiv:2409.02908, for MDM, low-precision Gumbel Max improves perplexity score but reduces generation quality.
-    Thus, we use float64.
-    """
-    if temperature == 0:
-        return logits
-    logits = logits.to(torch.float64)
-    noise = torch.rand_like(logits, dtype=torch.float64)
-    gumbel_noise = (-torch.log(noise)) ** temperature
-    return logits.exp() / gumbel_noise
+from dllm.core.samplers.utils import get_num_transfer_tokens, add_gumbel_noise
 
 
 @dataclass
@@ -108,12 +94,15 @@ class MDLMSampler(BaseSampler):
             x[i, prompt_lens[i] : prompt_lens[i] + max_new_tokens] = (
                 mask_id  # append `max_new_tokens` masks to be generated
             )
-        attention_mask = (x != eos_id).long() if B > 1 else None
+        attention_mask = torch.zeros((B, T), dtype=torch.long, device=self.model.device)
+        for i, pl in enumerate(prompt_lens):
+            valid_end = min(pl + max_new_tokens, T)
+            attention_mask[i, :valid_end] = 1
 
         # Tokens that were *given* at the start (non-mask, non-EOS).
         # These will be masked in the unconditional forward pass for CFG.
         # Tokens from `cfg_keep_tokens` should *not* be treated as "given" for CFG
-        unmasked_index = (x != mask_id) & (x != eos_id)
+        unmasked_index = (x != mask_id) & attention_mask.bool()
         if not (cfg_keep_tokens is None or len(cfg_keep_tokens) == 0):
             keep_mask = torch.isin(
                 x, torch.as_tensor(cfg_keep_tokens, device=self.model.device)
@@ -288,12 +277,16 @@ class MDLMSampler(BaseSampler):
         x = torch.full((B, T), eos_id, dtype=torch.long, device=self.model.device)
         for i, t in enumerate(inputs):
             x[i, : seq_lens[i]] = t
-        attention_mask = (x != eos_id).long() if B > 1 else None
+
+        attention_mask = torch.zeros((B, T), dtype=torch.long, device=self.model.device)
+        for i, L in enumerate(seq_lens):
+            if L > 0:
+                attention_mask[i, :L] = 1
 
         # Tokens that were *given* at the start (non-mask, non-EOS).
         # These will be masked in the unconditional forward pass for CFG.
         # Tokens from `cfg_keep_tokens` should *not* be treated as "given" for CFG
-        unmasked_index = (x != mask_id) & (x != eos_id)
+        unmasked_index = (x != mask_id) & attention_mask.bool()
         if not (cfg_keep_tokens is None or len(cfg_keep_tokens) == 0):
             keep_mask = torch.isin(
                 x, torch.as_tensor(cfg_keep_tokens, device=self.model.device)
@@ -304,9 +297,6 @@ class MDLMSampler(BaseSampler):
         num_blocks = math.ceil(T / block_size)
         steps_per_block = math.ceil(steps / num_blocks)
         histories = [x.clone()] if return_dict else None
-
-        # Create attention mask where eos_token_id is masked (set to 0)
-        attention_mask = (x != eos_id).long()
 
         for b in range(num_blocks):
             start = b * block_size

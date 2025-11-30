@@ -5,7 +5,7 @@
 
 This directory provides two key sets of resources:
 
--  **[Warmup](#warmup)**: Tutorial scripts for continual pretraining and SFTing any BERT-style model on small datasets to sample text.
+-  **[Warmup](#warmup)**: Tutorials for continual pretraining and SFTing any BERT-style model on small datasets to generate text with diffusion.
 -  **[BERT-Chat](#bert-chat)**: The exact training, inference, and evaluation scripts used to create the [`ModernBERT-base-chat-v0`](https://huggingface.co/dllm-collection/ModernBERT-base-chat-v0) and [`ModernBERT-large-chat-v0`](https://huggingface.co/dllm-collection/ModernBERT-large-chat-v0) 🤗checkpoints, two BERTs finetuned as Chatbots. For a deep dive into experimental results, lessons learned, and more reproduction details, please see our full [![blog](https://img.shields.io/badge/W&B-white?logo=weightsandbiases) BERT-Chat Report](https://api.wandb.ai/links/asap-zzhou/101h5xvg).
 
 <p align="center" style="margin-top: 15px;">
@@ -31,7 +31,7 @@ examples/bert
 
 ## Warmup
 
-In this section, we show toy examples of continual pretraining and SFTing [`ModernBERT-large`](https://huggingface.co/answerdotai/ModernBERT-large) on small datasets to sample text.
+In this section, we show toy examples of continual pretraining and SFTing [`ModernBERT-large`](https://huggingface.co/answerdotai/ModernBERT-large) on small datasets to generate text.
 You can use any BERT model instead for example, by `--model_name_or_path "FacebookAI/roberta-large"`.
 
 ### Continual Pretraining
@@ -47,15 +47,16 @@ accelerate launch --config_file scripts/accelerate_configs/ddp.yaml --num_proces
     --max_length 128 \
     --learning_rate 1e-4 \
     --num_train_epochs 20 \
-    --per_device_train_batch_size 64 \
-    --per_device_eval_batch_size 64 \
+    --per_device_train_batch_size 16 \
+    --per_device_eval_batch_size 16 \
+    --eval_steps 0.1 \
     --save_steps 0.1 \
     --output_dir "models/ModernBERT-large/tiny-shakespeare"
 ```
 
 To run the model for interactive inference:
 ```shell
-# just press enter (empty prompt) if you want the model to sample text from scratch 
+# just press enter (empty prompt) if you want the model to generate text from scratch 
 python -u examples/bert/chat.py \
     --model_name_or_path "models/ModernBERT-large/tiny-shakespeare/checkpoint-final" \
     --chat False --remasking "random" --steps 128 --max_new_tokens 128
@@ -65,15 +66,16 @@ python -u examples/bert/chat.py \
 
 To train [`ModernBERT-large`](https://huggingface.co/answerdotai/ModernBERT-large) on the [`alpaca`](https://huggingface.co/datasets/tatsu-lab/alpaca) dataset, run:
 ```shell
-accelerate launch --config_file scripts/accelerate_configs/ddp.yaml --num_processes 8 \
+accelerate launch --config_file scripts/accelerate_configs/zero2.yaml --num_processes 8 \
     examples/bert/sft.py \
     --model_name_or_path "answerdotai/ModernBERT-large" \
     --dataset_args "tatsu-lab/alpaca" \
     --max_length 512 \
     --learning_rate 1e-4 \
     --num_train_epochs 20 \
-    --per_device_train_batch_size 64 \
-    --per_device_eval_batch_size 64 \
+    --per_device_train_batch_size 16 \
+    --per_device_eval_batch_size 16 \
+    --eval_steps 0.1 \
     --save_steps 0.1 \
     --output_dir "models/ModernBERT-large/alpaca"
 ```
@@ -102,6 +104,7 @@ accelerate launch --config_file scripts/accelerate_configs/zero2.yaml --num_proc
     --num_train_epochs 10 \
     --per_device_train_batch_size 48 \
     --per_device_eval_batch_size 48 \
+    --eval_steps 0.1 \
     --save_steps 0.1 \
     --output_dir "models/ModernBERT-base/tulu-3-sft-mixture+smoltalk"
 ```
@@ -117,6 +120,7 @@ accelerate launch --config_file scripts/accelerate_configs/zero2.yaml --num_proc
     --num_train_epochs 10 \
     --per_device_train_batch_size 48 \
     --per_device_eval_batch_size 48 \
+    --eval_steps 0.1 \
     --save_steps 0.1 \
     --output_dir "models/ModernBERT-large/tulu-3-sft-mixture+smoltalk"
 ```

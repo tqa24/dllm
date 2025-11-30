@@ -10,6 +10,13 @@ from transformers.processing_utils import Unpack
 from transformers.utils import TransformersKwargs
 from transformers.modeling_attn_mask_utils import _prepare_4d_attention_mask
 
+if transformers.utils.is_torch_flex_attn_available():
+    from torch.nn.attention.flex_attention import _DEFAULT_SPARSE_BLOCK_SIZE as flex_default_block_size
+    from torch.nn.attention.flex_attention import BlockMask, create_block_mask
+else:
+    # Register a fake type to avoid crashing for annotations and `isinstance` checks
+    BlockMask = torch.Tensor
+
 
 class A2DLlamaConfig(transformers.LlamaConfig):
     model_type = "a2d-llama"  # <- NEW model_type
@@ -64,6 +71,7 @@ class A2DLlamaModel(transformers.LlamaModel):
         # -------------------------------------------------------------
         # NEW CODE (bidirectional, padding-only mask)
         # -------------------------------------------------------------
+        # 1) If no mask is provided → treat all tokens as valid (no padding)
         if attention_mask is None:
             # No mask provided → everything valid
             attention_mask = torch.ones(
@@ -72,9 +80,12 @@ class A2DLlamaModel(transformers.LlamaModel):
                 dtype=torch.long,
             )
 
-        if attention_mask.dim() == 2:
-            # Convert [B, T] padding mask → 4D additive mask
-            attention_mask = _prepare_4d_attention_mask(attention_mask, inputs_embeds.dtype)
+        # 2) If mask is not already a 4D attention mask → convert it
+        if not (
+            isinstance(attention_mask, BlockMask)
+            or (isinstance(attention_mask, torch.Tensor) and attention_mask.ndim == 4)
+        ):
+            attention_mask = _prepare_4d_attention_mask(attention_mask, self.dtype)
         # -------------------------------------------------------------
         # NEW CODE (bidirectional, padding-only mask)
         # -------------------------------------------------------------

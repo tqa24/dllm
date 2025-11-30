@@ -51,3 +51,17 @@ def get_num_transfer_tokens(
             r = torch.cat([r, pad])
         padded_rows.append(r)
     return torch.stack(padded_rows, dim=0)
+
+
+def add_gumbel_noise(logits: torch.Tensor, temperature: float) -> torch.Tensor:
+    """
+    The Gumbel max is a method for sampling categorical distributions.
+    According to arXiv:2409.02908, for MDM, low-precision Gumbel Max improves perplexity score but reduces generation quality.
+    Thus, we use float64.
+    """
+    if temperature == 0:
+        return logits
+    logits = logits.to(torch.float64)
+    noise = torch.rand_like(logits, dtype=torch.float64)
+    gumbel_noise = (-torch.log(noise)) ** temperature
+    return logits.exp() / gumbel_noise

@@ -4,26 +4,26 @@ Local users
 - 1 GPU:
     accelerate launch \
         --config_file scripts/accelerate_configs/ddp.yaml --num_processes 1 \
-        examples/a2d/sft.py
+        examples/a2d/bm3lm/sft.py
     
-- 8 GPUs (FSDP):
+- 8 GPUs (ZeRO-2):
     accelerate launch \
-        --config_file scripts/accelerate_configs/fsdp.yaml \
-        examples/a2d/sft.py
+        --config_file scripts/accelerate_configs/zero2.yaml \
+        examples/a2d/bm3lm/sft.py
 
 Slurm users
 # Note: run `mkdir logs` before running sbatch; and adjust 
 #       `partition` and `quotatype` in `scripts/train.slurm.sh` for your cluster.
 ------------
-- 1 Node, 8 GPUs (FSDP):
-    sbatch --gres=gpu:1 scripts/train.slurm.sh \
-        --accelerate_config "fsdp" \
-        --script_path "examples/a2d/sft.py"
+- 1 Node, 8 GPUs (ZeRO-2):
+    sbatch --gres=gpu:8 scripts/train.slurm.sh \
+        --accelerate_config "zero2" \
+        --script_path "examples/a2d/bm3lm/sft.py"
 
-- 2 Nodes, 16 GPUs (FSDP):
+- 2 Nodes, 16 GPUs (ZeRO-2):
     sbatch --nodes=2 --gres=gpu:8 scripts/train.slurm.sh \
-        --accelerate_config "fsdp" \
-        --script_path "examples/a2d/sft.py"
+        --accelerate_config "zero2" \
+        --script_path "examples/a2d/bm3lm/sft.py"
 """
 
 import os
@@ -40,15 +40,13 @@ logger = dllm.utils.get_default_logger(__name__)
 
 @dataclass
 class ModelArguments(dllm.utils.ModelArguments):
-    model_name_or_path: str = "models/a2d/Qwen2.5-Coder-0.5B-Instruct"
+    model_name_or_path: str = "models/a2d/Qwen3-0.6B"
 
 
 @dataclass
 class DataArguments(dllm.utils.DataArguments):
-    dataset_args: str = (
-        "OpenCoder-LLM/opc-sft-stage2[name:educational_instruct,train:10000,test:1000]"
-    )
-    max_length: int = 1024
+    dataset_args: str = "tatsu-lab/alpaca"
+    max_length: int = 512 # [TODO]
     load_preprocessed_data: bool = False
     mask_prompt_loss: bool = field(
         default=True,
@@ -58,18 +56,17 @@ class DataArguments(dllm.utils.DataArguments):
 
 @dataclass
 class TrainingArguments(dllm.utils.TrainingArguments):
-    output_dir: str = (
-        "models/a2d/Qwen2.5-Coder-0.5B-Instruct/opc-sft-stage2[name:educational_instruct,train:10000,test:1000]"
-    )
+    output_dir: str = "models/a2d/Qwen3-0.6B/mdlm/alpaca"
     group_by_length: bool = True
     learning_rate: float = 1e-4
-    num_train_epochs: int = 10
+    num_train_epochs: int = 20
     per_device_train_batch_size: int = 16
     per_device_eval_batch_size: int = 16
     eval_steps: float = 0.1
     save_steps: float = 0.1
     # a2d-specific
-    right_shift_logits: bool = True
+    block_size: int = 32
+    right_shift_logits: bool = False
 
 
 def train():
@@ -109,21 +106,22 @@ def train():
     # ----- Training --------------------------------------------------------------
     accelerate.PartialState().wait_for_everyone()
     logger.info("Start training...")
-    trainer = dllm.core.trainers.MDLMTrainer(
+    trainer = dllm.core.trainers.BM3LMTrainer(
         model=model,
         tokenizer=tokenizer,
         train_dataset=dataset["train"],
         eval_dataset=dataset.get("test", None),
         args=training_args,
+        block_size=training_args.block_size,
         right_shift_logits=training_args.right_shift_logits,
         data_collator=(
-            dllm.utils.NoAttentionMaskWrapper(  # padded <eos_token> should be visible
+            dllm.core.trainers.bm3lm.AppendEOSBlockWrapper(
                 transformers.DataCollatorForSeq2Seq(
                     tokenizer,
                     return_tensors="pt",
                     padding=True,
-                    label_pad_token_id=tokenizer.pad_token_id,  # finetune on padded <eos_token>
                 ),
+                block_size=training_args.block_size,
             )
         ),
     )

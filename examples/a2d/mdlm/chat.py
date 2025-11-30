@@ -4,7 +4,7 @@ Interactive chat / sampling script for A2D models.
 Examples
 --------
 # Raw multi-turn sampling (default)
-python -u examples/a2d/chat.py --model_name_or_path "YOUR_MODEL_PATH" --chat True
+python -u examples/a2d/mdlm/chat.py --model_name_or_path "YOUR_MODEL_PATH" --chat True
 """
 
 import sys
@@ -35,7 +35,7 @@ class SamplerConfig(dllm.core.samplers.MDLMSamplerConfig):
     block_size: int = 32
     temperature: float = 0.0
     remasking: str = "low_confidence"
-    right_shift_logits: bool = True
+    right_shift_logits: bool = False
 
 
 def main():

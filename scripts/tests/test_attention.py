@@ -500,11 +500,13 @@ def test_attention_mask_invariance(model_name_or_path, attn_impl, use_position_i
 @pytest.mark.parametrize(
     "model_name_or_path, config_cls, model_cls, attn_impl, use_position_ids",
     [
-        # ("openai-community/gpt2",
-        #  dllm.pipelines.a2d.A2DGPT2Config,
-        #  dllm.pipelines.a2d.A2DGPT2LMHeadModel,
-        #  None,
-        #  True),
+        # (
+        #     "openai-community/gpt2",
+        #     dllm.pipelines.a2d.A2DGPT2Config,
+        #     dllm.pipelines.a2d.A2DGPT2LMHeadModel,
+        #     None,
+        #     True
+        # ),
         (
             "meta-llama/Llama-3.2-1B",
             dllm.pipelines.a2d.A2DLlamaConfig,

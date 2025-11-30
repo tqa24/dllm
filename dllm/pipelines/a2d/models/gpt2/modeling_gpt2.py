@@ -1,39 +1,22 @@
-import math
-import os
-import warnings
-from dataclasses import dataclass
-from typing import Callable, Optional, Union
+from typing import Optional, Union
 
 import torch
 from torch import nn
-from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
 
 import transformers
-from transformers.activations import ACT2FN, get_activation
 from transformers.cache_utils import Cache, DynamicCache, EncoderDecoderCache
-from transformers.generation import GenerationMixin
-from transformers.masking_utils import create_causal_mask
 from transformers.modeling_attn_mask_utils import _prepare_4d_attention_mask_for_sdpa
-from transformers.modeling_layers import GradientCheckpointingLayer
-from transformers.modeling_outputs import (
-    BaseModelOutputWithPastAndCrossAttentions,
-    CausalLMOutputWithCrossAttentions,
-    QuestionAnsweringModelOutput,
-    SequenceClassifierOutputWithPast,
-    TokenClassifierOutput,
-)
-from transformers.modeling_utils import ALL_ATTENTION_FUNCTIONS, PreTrainedModel
-from transformers.pytorch_utils import Conv1D, find_pruneable_heads_and_indices, prune_conv1d_layer
-from transformers.utils import (
-    ModelOutput,
-    add_start_docstrings,
-    auto_docstring,
-    logging,
-)
-from transformers.utils.deprecation import deprecate_kwarg
-from transformers.utils.model_parallel_utils import assert_device_map, get_device_map
+from transformers.modeling_outputs import BaseModelOutputWithPastAndCrossAttentions
+from transformers.utils import logging
 from transformers.modeling_attn_mask_utils import _prepare_4d_attention_mask
-# from .configuration_gpt2 import GPT2Config
+
+from transformers.models.gpt2.modeling_gpt2 import GPT2Attention as GPT2Attention
+
+if transformers.utils.is_torch_flex_attn_available():
+    from torch.nn.attention.flex_attention import _DEFAULT_SPARSE_BLOCK_SIZE as flex_default_block_size
+    from torch.nn.attention.flex_attention import BlockMask, create_block_mask
+else:
+    BlockMask = torch.Tensor
 
 logger = logging.get_logger(__name__)
 
@@ -42,7 +25,35 @@ class A2DGPT2Config(transformers.GPT2Config):
     model_type = "a2d-gpt2"  # <- NEW model_type
 
 
+# >>> A2D modification:
+# Minimal override of GPT2Attention to disable the internal causal mask while
+# keeping all original behavior / comments intact.
+class A2DGPT2Attention(GPT2Attention):
+    def __init__(self, config, is_cross_attention=False, layer_idx=None):
+        super().__init__(config=config, is_cross_attention=is_cross_attention, layer_idx=layer_idx)
+
+        # Disable causal behavior for all attention backends (eager/sdpa/flash)
+        # This ensures full bidirectional attention as required by A2D.
+        self.is_causal = False  # <<< key change
+
+        # Replace causal lower-triangular mask with an all-True mask
+        # so eager/_upcast path will not zero-out future positions.
+        if hasattr(self, "bias"):
+            full_bias = torch.ones_like(self.bias, dtype=torch.bool)
+            self.register_buffer("bias", full_bias, persistent=False)
+
+
 class A2DGPT2Model(transformers.GPT2Model):
+
+    def __init__(self, config):
+        super().__init__(config)
+
+        # >>> A2D modification:
+        # Replace original causal GPT2Attention with the non-causal version above.
+        for i, block in enumerate(self.h):
+            block.attn = A2DGPT2Attention(config, is_cross_attention=False, layer_idx=i)
+            if config.add_cross_attention and hasattr(block, "crossattention"):
+                block.crossattention = A2DGPT2Attention(config, is_cross_attention=True, layer_idx=i)
 
     def forward(
         self,
@@ -142,19 +153,28 @@ class A2DGPT2Model(transformers.GPT2Model):
         if attention_mask is not None and attention_mask.ndim < 4:
             attention_mask = attention_mask.view(batch_size, -1)
 
-        # [TODO]: create noncausal mask
-        # causal_mask = create_causal_mask(
-        #     config=self.config,
-        #     input_embeds=inputs_embeds,
-        #     attention_mask=attention_mask,
-        #     cache_position=cache_position,
-        #     past_key_values=past_key_values,
-        #     position_ids=position_ids,
-        # )
+        # -------------------------------------------------------------
+        # ORIGINAL CAUSAL CODE REMOVED BY YOU
+        # (kept as comment, no modification)
+        # -------------------------------------------------------------
+
+        # -------------------------------------------------------------
+        # NEW CODE (bidirectional, padding-only mask)
+        # (kept exactly as you wrote)
+        # -------------------------------------------------------------
         if attention_mask is None:
-            batch_size, seq_len = input_ids.shape[:2]
-            attention_mask = torch.ones((batch_size, seq_len), device=device, dtype=torch.bool)
-        attention_mask = _prepare_4d_attention_mask(attention_mask, self.dtype)
+            attention_mask = torch.ones(
+                inputs_embeds.shape[:2],
+                device=inputs_embeds.device,
+                dtype=torch.long,
+            )
+
+        if not (
+            isinstance(attention_mask, BlockMask)
+            or (isinstance(attention_mask, torch.Tensor) and attention_mask.ndim == 4)
+        ):
+            attention_mask = _prepare_4d_attention_mask(attention_mask, self.dtype)
+        # -------------------------------------------------------------
 
         # If a 2D or 3D attention mask is provided for the cross-attention
         # we need to make broadcastable to [batch_size, num_heads, seq_length, seq_length]
@@ -173,10 +193,6 @@ class A2DGPT2Model(transformers.GPT2Model):
         else:
             encoder_attention_mask = None
 
-        # Prepare head mask if needed
-        # 1.0 in head_mask indicate we keep the head
-        # attention_probs has shape bsz x n_heads x N x N
-        # head_mask has shape n_layer x batch x n_heads x N x N
         head_mask = self.get_head_mask(head_mask, self.config.n_layer)
 
         if token_type_ids is not None:
@@ -203,9 +219,9 @@ class A2DGPT2Model(transformers.GPT2Model):
                 hidden_states,
                 past_key_values if not (self.gradient_checkpointing and self.training) else None,
                 cache_position,
-                attention_mask,
+                attention_mask,      # (unchanged) pass your full-mask 4D mask
                 head_mask[i],
-                encoder_hidden_states,  # as a positional argument for gradient checkpointing
+                encoder_hidden_states,
                 encoder_attention_mask=encoder_attention_mask,
                 use_cache=use_cache,
                 output_attentions=output_attentions,
@@ -257,11 +273,8 @@ class A2DGPT2LMHeadModel(transformers.GPT2LMHeadModel):
         self.transformer = A2DGPT2Model(config)
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
 
-        # Model parallel
         self.model_parallel = False
         self.device_map = None
-
-        # Initialize weights and apply final processing
         self.post_init()
 
 

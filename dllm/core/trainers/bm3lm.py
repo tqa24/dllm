@@ -1,8 +1,10 @@
-# If the mask is already 4D, simply return as-is (it was already prepared, or it is custom)
-# if isinstance(attention_mask, (torch.Tensor, BlockMask)) and len(attention_mask.shape) == 4:
-#     return True, attention_mask, None, None, None
+"""
+References:
 
-# block-wise masked diffusion language modeling
+Block Diffusion: Interpolating Between Autoregressive and Diffusion Language Models:
+https://arxiv.org/abs/2503.09573
+"""
+
 from functools import partial
 from dataclasses import dataclass
 
@@ -13,23 +15,39 @@ import transformers
 from typing import Any
 
 from .mdlm import MDLMTrainer
+from dllm.utils.collators import CollatorWrapper
 
-# from dllm.core.schedulers import BaseAlphaScheduler, LinearAlphaScheduler
 
+# @dataclass
+# class BM3LMSFTCollator(transformers.DataCollatorForSeq2Seq):
+#     block_size: int = 32
+
+#     def __call__(self, features, return_tensors=None):
+#         # ---------- Step 1: Pad each example to the nearest multiple of block_size ----------
+#         # Pad input_ids and labels so that each sequence length becomes
+#         # the smallest multiple of block_size that is >= the original length.
+#         for ex in features:
+#             ids = ex["input_ids"]
+#             labs = ex["labels"]
+
+#             assert isinstance(ids, list) and isinstance(labs, list)
+
+#             L = len(ids)
+#             target = (L + self.block_size - 1) // self.block_size * self.block_size
+#             pad_len = target - L
+#             if pad_len > 0:
+#                 ex["input_ids"] = ids + [self.tokenizer.eos_token_id] * pad_len
+#                 ex["labels"] = labs + [self.tokenizer.eos_token_id] * pad_len
+
+#         # ---------- Step 2: Use the parent Seq2Seq collator for batch-level padding ----------
+#         batch = super().__call__(features, return_tensors=return_tensors)
+#         return batch
 
 @dataclass
-class BM3LMCollator(transformers.DataCollatorForSeq2Seq):
+class AppendEOSBlockWrapper(CollatorWrapper):
     block_size: int = 32
 
-    def __call__(self, features, return_tensors=None):
-        # ---------- Step 1: list-of-dict 上按 block_size 各自补齐 ----------
-        # 直接复用你上面定义的 pad_to_block_size
-        # features = pad_to_block_size(
-        #     features,
-        #     eos_id=self.tokenizer.eos_token_id,
-        #     block_size=self.block_size,
-        # )
-        # pad to the minimal multiple of block size
+    def before(self, features):
         for ex in features:
             ids = ex["input_ids"]
             labs = ex["labels"]
@@ -42,10 +60,7 @@ class BM3LMCollator(transformers.DataCollatorForSeq2Seq):
             if pad_len > 0:
                 ex["input_ids"] = ids + [self.tokenizer.eos_token_id] * pad_len
                 ex["labels"] = labs + [self.tokenizer.eos_token_id] * pad_len
-
-        # ---------- Step 2: 用 Seq2Seq collator 做 batch padding ----------
-        batch = super().__call__(features, return_tensors=return_tensors)
-        return batch
+        return features
 
 
 def block_diff_mask(b, h, q_idx, kv_idx, block_size=None, n=None):
@@ -93,12 +108,6 @@ def block_diff_mask(b, h, q_idx, kv_idx, block_size=None, n=None):
 
 class BM3LMTrainer(MDLMTrainer):
 
-    def _preprocess_inputs(self, inputs):
-        return inputs
-
-    def _postprocess_outputs(self, outputs):
-        return outputs
-
     def __init__(
         self,
         block_size: int = 32,
@@ -111,27 +120,10 @@ class BM3LMTrainer(MDLMTrainer):
     def compute_loss(
         self,
         model: transformers.PreTrainedModel | nn.Module,
-        inputs: list[dict[str, Any]],  # 注意：这里现在是 list[dict]
+        inputs: list[dict[str, Any]],
         return_outputs: bool = False,
         **kwargs,
     ):
-        assert self.processing_class.padding_side == "right"
-
-        # # ---------- Step 1: list-of-dict 上按 block_size 各自补齐 ----------
-        # # 每个样本 input_ids / labels 各自 pad 到 block_size 的倍数，仍然是 list[dict]
-        # breakpoint()
-        # inputs = pad_to_block_size(
-        #     inputs,
-        #     eos_id=self.processing_class.eos_token_id,
-        #     block_size=self.block_size,
-        # )
-
-        # # ---------- Step 2: 用 Seq2Seq collator 做 batch padding ----------
-        # # 假设 self.data_collator 是 DataCollatorForSeq2Seq 或其 wrapper，
-        # # 它会把 labels 额外 pad 成 -100（label_pad_token_id）。
-        # batch = self.data_collator(inputs)      # dict[str, torch.Tensor] on CPU
-        # batch = self._prepare_inputs(batch)     # Trainer 自带：搬到 device / cast dtype
-
         assert self.processing_class.padding_side == "right"
         inputs = self._preprocess_inputs(inputs)
         input_ids, labels, attention_mask = (
@@ -142,6 +134,8 @@ class BM3LMTrainer(MDLMTrainer):
         b, l = input_ids.shape
 
         # === 1. Sample diffusion timesteps ===
+        # Each example draws a random timestep t ∈ [ε, 1), where ε avoids degenerate values near 0.
+        # The scheduler defines the masking rate α(t); we convert it to a masking probability p_mask = 1 - α(t).
         t = self.time_epsilon + (1 - self.time_epsilon) * torch.rand(
             b, device=input_ids.device
         )  # [b]
@@ -149,9 +143,12 @@ class BM3LMTrainer(MDLMTrainer):
         p_mask = 1.0 - alpha_t.unsqueeze(1).expand(b, l)  # [b, l]
 
         # === 2. Apply stochastic masking ===
+        # Tokens are masked independently according to p_mask(t).
+        # Positions with label = -100 are excluded (ignored in loss).
         masked_indices = (torch.rand((b, l), device=input_ids.device) < p_mask) & (
             labels != -100
         )
+        # Replace masked tokens with the special [MASK] token.
         noised_input_ids = torch.where(
             masked_indices, self.processing_class.mask_token_id, input_ids
         )
@@ -162,8 +159,8 @@ class BM3LMTrainer(MDLMTrainer):
         # concat_input_ids: [b, 2l], first l are noisy (x_t), last l are clean (x_0)
         concat_input_ids = torch.cat([noised_input_ids, input_ids], dim=1)
 
-        # TODO: others like flash attention 2
-        if model.config._attn_implementation == "sdpa":
+        # [TODO]: others like flash attention 2
+        if self.accelerator.unwrap_model(model).config._attn_implementation == "sdpa":
             attention_mask = block_diff_mask(
                 b=None,
                 h=None,
@@ -176,7 +173,7 @@ class BM3LMTrainer(MDLMTrainer):
                 attention_mask.unsqueeze(0).unsqueeze(0).expand(1, 1, 2 * l, 2 * l)
             )
             attention_mask = attention_mask.to(input_ids.device)
-        elif model.config._attn_implementation == "flex_attention":
+        elif self.accelerator.unwrap_model(model).config._attn_implementation == "flex_attention":
             from torch.nn.attention.flex_attention import create_block_mask
 
             attention_mask = create_block_mask(
@@ -194,7 +191,6 @@ class BM3LMTrainer(MDLMTrainer):
         )  # [B, L]
         concat_position_ids = torch.cat([base_pos, base_pos], dim=1)  # [B, 2L]
 
-        # TODO: positional id, left half and right half should have the same positional id
         outputs = model(
             input_ids=concat_input_ids,
             attention_mask=attention_mask,

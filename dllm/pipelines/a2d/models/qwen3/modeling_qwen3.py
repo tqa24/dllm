@@ -82,13 +82,12 @@ class A2DQwen3Model(transformers.Qwen3Model):
         # NEW CODE (bidirectional, padding-only mask)
         # -------------------------------------------------------------
         if not isinstance(causal_mask_mapping := attention_mask, dict):
-            batch_size, seq_len = inputs_embeds.shape[:2]
-            device = inputs_embeds.device
-
             # 1) If no mask is provided → treat all tokens as valid (no padding)
             if attention_mask is None:
                 attention_mask = torch.ones(
-                    batch_size, seq_len, device=device, dtype=torch.long
+                    inputs_embeds.shape[:2], 
+                    device=inputs_embeds.device, 
+                    dtype=torch.long
                 )
 
             # 2) If mask is not already a 4D attention mask → convert it

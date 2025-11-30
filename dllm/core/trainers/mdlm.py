@@ -1,3 +1,13 @@
+"""
+References:
+
+Simple and Effective Masked Diffusion Language Models:
+https://arxiv.org/abs/2406.07524
+
+Large Language Diffusion Models:
+https://arxiv.org/abs/2502.09992
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

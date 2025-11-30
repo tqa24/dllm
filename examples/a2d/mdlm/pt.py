@@ -4,21 +4,26 @@ Local users
 - 1 GPU:
     accelerate launch \
         --config_file scripts/accelerate_configs/ddp.yaml --num_processes 1 \
-        examples/a2d/pt.py
+        examples/a2d/mdlm/pt.py
 
-- 8 GPUs (FSDP):
+- 8 GPUs (ZeRO-2):
     accelerate launch \
-        --config_file scripts/accelerate_configs/fsdp.yaml \
-        examples/a2d/pt.py
+        --config_file scripts/accelerate_configs/zero2.yaml \
+        examples/a2d/mdlm/pt.py
 
 Slurm users
 # Note: run `mkdir logs` before running sbatch; and adjust 
 #       `partition` and `quotatype` in `scripts/train.slurm.sh` for your cluster.
 ------------
-- 8 GPUs (FSDP):
-    sbatch --gres=gpu:8 scripts/train.slurm.sh \
-        --accelerate_config "fsdp" \
-        --script_path "examples/a2d/pt.py"
+- 1 Node, 8 GPUs (ZeRO-2):
+    sbatch --gres=gpu:1 scripts/train.slurm.sh \
+        --accelerate_config "zero2" \
+        --script_path "examples/a2d/mdlm/pt.py"
+
+- 2 Nodes, 16 GPUs (ZeRO-2):
+    sbatch --nodes=2 --gres=gpu:8 scripts/train.slurm.sh \
+        --accelerate_config "zero2" \
+        --script_path "examples/a2d/mdlm/pt.py"
 """
 
 import os
@@ -35,14 +40,14 @@ logger = dllm.utils.get_default_logger(__name__)
 
 @dataclass
 class ModelArguments(dllm.utils.ModelArguments):
-    model_name_or_path: str = "models/a2d/Qwen2.5-Coder-0.5B"
+    model_name_or_path: str = "models/a2d/Qwen3-0.6B"
 
 
 @dataclass
 class DataArguments(dllm.utils.DataArguments):
-    dataset_args: str = "OpenCoder-LLM/opc-annealing-corpus[train:10000,test:1000]"
-    text_field: str = "text"
-    max_length: int = 1024
+    dataset_args: str = "Trelis/tiny-shakespeare"
+    text_field: str = "Text"
+    max_length: int = 128
     streaming: bool = False
     drop_tail: bool = True
     insert_eos: bool = field(
@@ -57,7 +62,7 @@ class DataArguments(dllm.utils.DataArguments):
 @dataclass
 class TrainingArguments(dllm.utils.TrainingArguments):
     output_dir: str = (
-        "models/a2d/Qwen2.5-Coder-0.5B/opc-annealing-corpus[train:10000,test:1000]"
+        "models/a2d/Qwen3-0.6B/mdlm/tiny-shakespeare"
     )
     num_train_epochs: int = 10
     learning_rate: float = 1e-4
@@ -66,7 +71,7 @@ class TrainingArguments(dllm.utils.TrainingArguments):
     eval_steps: float = 0.1
     save_steps: float = 0.1
     # a2d-specific
-    right_shift_logits: bool = True
+    right_shift_logits: bool = False
 
 
 def train():
