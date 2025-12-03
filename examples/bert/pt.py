@@ -104,7 +104,11 @@ def train():
                 batched=True,
                 remove_columns=dataset["train"].column_names,
                 **({} if data_args.streaming else {"num_proc": data_args.num_proc}),
-                **({} if data_args.streaming else {"desc": "Mapping dataset to PT format"}),
+                **(
+                    {}
+                    if data_args.streaming
+                    else {"desc": "Mapping dataset to PT format"}
+                ),
             )
         if data_args.streaming:
             dataset = dataset.shuffle(seed=training_args.seed)

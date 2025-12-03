@@ -48,7 +48,7 @@ class ModelArguments(dllm.utils.ModelArguments):
 class DataArguments(dllm.utils.DataArguments):
     dataset_args: str = "Trelis/tiny-shakespeare"
     text_field: str = "Text"
-    max_length: int = 128 # [TODO]
+    max_length: int = 128  # [TODO]
     streaming: bool = False
     drop_tail: bool = True
     insert_eos: bool = field(
@@ -62,9 +62,7 @@ class DataArguments(dllm.utils.DataArguments):
 
 @dataclass
 class TrainingArguments(dllm.utils.TrainingArguments):
-    output_dir: str = (
-        "models/a2d/Qwen3-0.6B/bm3lm/tiny-shakespeare"
-    )
+    output_dir: str = "models/a2d/Qwen3-0.6B/bm3lm/tiny-shakespeare"
     num_train_epochs: int = 20
     learning_rate: float = 1e-4
     per_device_train_batch_size: int = 16

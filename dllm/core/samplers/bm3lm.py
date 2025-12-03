@@ -193,7 +193,9 @@ class BM3LMSampler(BaseSampler):
         # ---- normalize inputs to tensors ----
         # If right_shift_logits is true and a sequence has length 0, replace that sequence with [eos].
         if right_shift_logits:
-            inputs = [[bos_id] if isinstance(p, list) and len(p) == 0 else p for p in inputs]
+            inputs = [
+                [bos_id] if isinstance(p, list) and len(p) == 0 else p for p in inputs
+            ]
 
         if isinstance(inputs[0], list):
             inputs = [

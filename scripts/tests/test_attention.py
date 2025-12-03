@@ -692,8 +692,8 @@ def test_a2d_staircase_attention_kvcache_equivalence(
     )
 
     # First and second blocks
-    x_first = x_full[:, :block_size]           # [1, 4]
-    x_second = x_full[:, block_size:seq_len]   # [1, 4]
+    x_first = x_full[:, :block_size]  # [1, 4]
+    x_second = x_full[:, block_size:seq_len]  # [1, 4]
 
     # ------------------------------
     # 3. Build staircase mask + positions for the full sequence
@@ -719,7 +719,7 @@ def test_a2d_staircase_attention_kvcache_equivalence(
     # ------------------------------
     # First block
     attn_first = attn_full[:, :, :block_size, :block_size]  # [1, 1, 4, 4]
-    pos_first = pos_full[:, :block_size]                    # [1, 4]
+    pos_first = pos_full[:, :block_size]  # [1, 4]
 
     with torch.no_grad():
         out1 = model(
@@ -733,7 +733,7 @@ def test_a2d_staircase_attention_kvcache_equivalence(
 
     # Second block
     attn_second = attn_full[:, :, block_size:seq_len, :seq_len]  # [1, 1, 4, 8]
-    pos_second = pos_full[:, block_size:seq_len]                  # [1, 4]
+    pos_second = pos_full[:, block_size:seq_len]  # [1, 4]
 
     with torch.no_grad():
         out2 = model(
@@ -750,11 +750,14 @@ def test_a2d_staircase_attention_kvcache_equivalence(
     # ------------------------------
     diff_first = (logits_full[:, :block_size, :] - logits_first).abs().max().item()
     diff_second = (
-        logits_full[:, block_size:seq_len, :] - logits_second
-    ).abs().max().item()
+        (logits_full[:, block_size:seq_len, :] - logits_second).abs().max().item()
+    )
 
     assert torch.allclose(
-        logits_full[:, :block_size, :], logits_first, atol=ERROR_THRESHOLD, rtol=ERROR_THRESHOLD
+        logits_full[:, :block_size, :],
+        logits_first,
+        atol=ERROR_THRESHOLD,
+        rtol=ERROR_THRESHOLD,
     ), f"Mismatch on first block (0–3), max diff={diff_first}"
 
     assert torch.allclose(

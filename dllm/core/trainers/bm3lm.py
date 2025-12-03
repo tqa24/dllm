@@ -43,6 +43,7 @@ from dllm.utils.collators import CollatorWrapper
 #         batch = super().__call__(features, return_tensors=return_tensors)
 #         return batch
 
+
 @dataclass
 class AppendEOSBlockWrapper(CollatorWrapper):
     block_size: int = 32
@@ -173,7 +174,10 @@ class BM3LMTrainer(MDLMTrainer):
                 attention_mask.unsqueeze(0).unsqueeze(0).expand(1, 1, 2 * l, 2 * l)
             )
             attention_mask = attention_mask.to(input_ids.device)
-        elif self.accelerator.unwrap_model(model).config._attn_implementation == "flex_attention":
+        elif (
+            self.accelerator.unwrap_model(model).config._attn_implementation
+            == "flex_attention"
+        ):
             from torch.nn.attention.flex_attention import create_block_mask
 
             attention_mask = create_block_mask(

@@ -51,7 +51,9 @@ class CollatorWrapper:
 
         # By protocol, __getattr__ must raise AttributeError if the attribute
         # truly does not exist anywhere.
-        raise AttributeError(f"{type(self).__name__!r} object has no attribute {name!r}")
+        raise AttributeError(
+            f"{type(self).__name__!r} object has no attribute {name!r}"
+        )
 
 
 @dataclass

@@ -61,9 +61,7 @@ class DataArguments(dllm.utils.DataArguments):
 
 @dataclass
 class TrainingArguments(dllm.utils.TrainingArguments):
-    output_dir: str = (
-        "models/a2d/Qwen3-0.6B/mdlm/tiny-shakespeare"
-    )
+    output_dir: str = "models/a2d/Qwen3-0.6B/mdlm/tiny-shakespeare"
     num_train_epochs: int = 20
     learning_rate: float = 1e-4
     per_device_train_batch_size: int = 16

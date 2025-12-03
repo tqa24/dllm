@@ -46,7 +46,7 @@ class ModelArguments(dllm.utils.ModelArguments):
 @dataclass
 class DataArguments(dllm.utils.DataArguments):
     dataset_args: str = "tatsu-lab/alpaca"
-    max_length: int = 512 # [TODO]
+    max_length: int = 512  # [TODO]
     load_preprocessed_data: bool = False
     mask_prompt_loss: bool = field(
         default=True,

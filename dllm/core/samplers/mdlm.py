@@ -75,7 +75,9 @@ class MDLMSampler(BaseSampler):
         # ----- Shape bookkeeping: per-sample prompt lengths and final canvas width -----
         # If right_shift_logits is true and a sequence has length 0, replace that sequence with [eos].
         if right_shift_logits:
-            inputs = [[bos_id] if isinstance(p, list) and len(p) == 0 else p for p in inputs]
+            inputs = [
+                [bos_id] if isinstance(p, list) and len(p) == 0 else p for p in inputs
+            ]
 
         if isinstance(inputs[0], list):
             inputs = [
@@ -265,7 +267,9 @@ class MDLMSampler(BaseSampler):
         # ----- Build canvas: right-pad with EOS to the max length in the batch -----
         # If right_shift_logits is true and a sequence has length 0, replace that sequence with [eos].
         if right_shift_logits:
-            inputs = [[bos_id] if isinstance(p, list) and len(p) == 0 else p for p in inputs]
+            inputs = [
+                [bos_id] if isinstance(p, list) and len(p) == 0 else p for p in inputs
+            ]
 
         if isinstance(inputs[0], list):
             inputs = [
