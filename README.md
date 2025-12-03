@@ -242,6 +242,9 @@ sequences = dllm.utils.decode_trim(tokenizer, outputs.sequences.tolist(), inputs
 ```
 
 You can also try interactive chat script (for example, [`examples/llada/chat.py`](/examples/llada/chat.py)) for visualized multi-turn dialogue:
+```shell
+python -u examples/llada/chat.py --model_name_or_path "GSAI-ML/LLaDA-8B-Instruct"
+```
 
 <p align="center">
     <img src="/assets/chat.gif" alt="chat" width="80%">

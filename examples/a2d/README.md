@@ -34,17 +34,17 @@ examples/a2d
 1. **Customize modeling files**: You must first modify the original autoregressive modeling file to support non-causal attention. See [`modeling_qwen3.py`](/dllm/pipelines/a2d/models/qwen3/modeling_qwen3.py#L77-L108) for an example, and update [`__init__.py`](/dllm/pipelines/a2d/__init__.py) accordingly to register the new model config and architecture.
 
 2. **Run unit tests**: Before proceeding with your customized models, ensure they pass:
-```shell
-pytest scripts/tests/test_attention.py::test_a2d_attention_mask_invariance
-pytest scripts/tests/test_attention.py::test_a2d_fullmask_future_affects_past
-# Optional: only needed for BM3LM
-pytest scripts/tests/test_attention.py::test_a2d_staircase_attention_kvcache_equivalence
-```
+    ```shell
+    pytest scripts/tests/test_attention.py::test_a2d_attention_mask_invariance
+    pytest scripts/tests/test_attention.py::test_a2d_fullmask_future_affects_past
+    # Optional: only needed for BM3LM
+    pytest scripts/tests/test_attention.py::test_a2d_staircase_attention_kvcache_equivalence
+    ```
 
 3. **Convert an AR model with customized attention**: For example, to convert `Qwen/Qwen3-0.6B` using its original weights but with the customized attention defined in [`modeling_qwen3.py`](/dllm/pipelines/a2d/models/qwen3/modeling_qwen3.py):
-```shell
-python dllm/pipelines/a2d/convert.py --model_name_or_path "Qwen/Qwen3-0.6B" --output_dir "models/a2d/Qwen3-0.6B"
-```
+    ```shell
+    python dllm/pipelines/a2d/convert.py --model_name_or_path "Qwen/Qwen3-0.6B" --output_dir "models/a2d/Qwen3-0.6B"
+    ```
 
 ## Warmup: [MDLM](https://arxiv.org/abs/2406.07524)
 
