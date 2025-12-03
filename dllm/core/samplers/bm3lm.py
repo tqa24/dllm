@@ -187,9 +187,14 @@ class BM3LMSampler(BaseSampler):
         assert steps >= 1
 
         mask_id = self.tokenizer.mask_token_id
+        bos_id = self.tokenizer.bos_token_id
         pad_id = self.tokenizer.pad_token_id  # used as padding here
 
         # ---- normalize inputs to tensors ----
+        # If right_shift_logits is true and a sequence has length 0, replace that sequence with [eos].
+        if right_shift_logits:
+            inputs = [[bos_id] if isinstance(p, list) and len(p) == 0 else p for p in inputs]
+
         if isinstance(inputs[0], list):
             inputs = [
                 torch.as_tensor(p, dtype=torch.long, device=self.model.device)

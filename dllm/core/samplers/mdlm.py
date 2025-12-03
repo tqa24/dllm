@@ -69,9 +69,14 @@ class MDLMSampler(BaseSampler):
         assert 1 <= block_size
         assert 1 <= steps
         mask_id = self.tokenizer.mask_token_id
+        bos_id = self.tokenizer.bos_token_id
         eos_id = self.tokenizer.eos_token_id
 
         # ----- Shape bookkeeping: per-sample prompt lengths and final canvas width -----
+        # If right_shift_logits is true and a sequence has length 0, replace that sequence with [eos].
+        if right_shift_logits:
+            inputs = [[bos_id] if isinstance(p, list) and len(p) == 0 else p for p in inputs]
+
         if isinstance(inputs[0], list):
             inputs = [
                 torch.as_tensor(p, dtype=torch.long, device=self.model.device)
@@ -254,9 +259,14 @@ class MDLMSampler(BaseSampler):
         )
 
         mask_id = self.tokenizer.mask_token_id
+        bos_id = self.tokenizer.bos_token_id
         eos_id = self.tokenizer.eos_token_id
 
         # ----- Build canvas: right-pad with EOS to the max length in the batch -----
+        # If right_shift_logits is true and a sequence has length 0, replace that sequence with [eos].
+        if right_shift_logits:
+            inputs = [[bos_id] if isinstance(p, list) and len(p) == 0 else p for p in inputs]
+
         if isinstance(inputs[0], list):
             inputs = [
                 torch.as_tensor(p, dtype=torch.long, device=self.model.device)
