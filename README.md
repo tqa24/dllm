@@ -53,7 +53,7 @@ Simple Diffusion Language Modeling
     </p>
     <p align="center">
     <em>
-        Chat with <a href="https://huggingface.co/dllm-collection/ModernBERT-large-chat-v0"><code>ModernBERT-large-chat-v0</code></a>. See <a href="/examples/bert/README.md/#inference">Inference</a> for details.
+        Chat with <a href="https://huggingface.co/dllm-collection/ModernBERT-large-chat-v0.1"><code>ModernBERT-large-chat-v0.1</code></a>. See <a href="/examples/bert/README.md/#inference">Inference</a> for details.
     </em>
     </p>
     </details> -->

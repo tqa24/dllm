@@ -7,7 +7,7 @@ accelerate launch \
     --model bert \
     --device cuda \
     --num_fewshot 8 \
-    --model_args "pretrained=dllm-collection/ModernBERT-base-chat-v0,is_check_greedy=False,mc_num=1,max_new_tokens=1024,steps=1024,block_size=32,cfg=0.0"
+    --model_args "pretrained=dllm-collection/ModernBERT-base-chat-v0.1,is_check_greedy=False,mc_num=1,max_new_tokens=1024,steps=1024,block_size=32,cfg=0.0"
 """
 
 from types import SimpleNamespace
