@@ -1,5 +1,5 @@
-from . import base, utils, mdlm, bm3lm
+from . import base, utils, mdlm, bd3lm
 from .base import SamplerOutput, SamplerConfig, BaseSampler
 from .utils import *
 from .mdlm import MDLMSamplerConfig, MDLMSampler
-from .bm3lm import BM3LMSamplerConfig, BM3LMSampler
+from .bd3lm import BD3LMSamplerConfig, BD3LMSampler

@@ -139,7 +139,7 @@ def diffusion_step_block(
 
 
 @dataclass
-class BM3LMSamplerConfig(SamplerConfig):
+class BD3LMSamplerConfig(SamplerConfig):
     max_new_tokens: int = 128
     max_length: int = (
         None  # There's no explicit length_limit except for the tokenizer/model context
@@ -155,18 +155,18 @@ class BM3LMSamplerConfig(SamplerConfig):
 
 
 @dataclass
-class BM3LMSampler(BaseSampler):
+class BD3LMSampler(BaseSampler):
 
     @torch.no_grad()
     def sample(
         self,
         inputs: list[torch.Tensor | list],
-        config: BM3LMSamplerConfig | None = None,
+        config: BD3LMSamplerConfig | None = None,
         **kwargs,
     ) -> SamplerOutput | torch.Tensor:
 
         if config is None:
-            config = BM3LMSamplerConfig()
+            config = BD3LMSamplerConfig()
 
         # ---- pull args from config, allow kwargs to override ----
         steps = kwargs.get("steps", config.steps)

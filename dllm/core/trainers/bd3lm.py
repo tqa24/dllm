@@ -19,7 +19,7 @@ from dllm.utils.collators import CollatorWrapper
 
 
 # @dataclass
-# class BM3LMSFTCollator(transformers.DataCollatorForSeq2Seq):
+# class BD3LMSFTCollator(transformers.DataCollatorForSeq2Seq):
 #     block_size: int = 32
 
 #     def __call__(self, features, return_tensors=None):
@@ -107,7 +107,7 @@ def block_diff_mask(b, h, q_idx, kv_idx, block_size=None, n=None):
     return block_diagonal | offset_block_causal | block_causal
 
 
-class BM3LMTrainer(MDLMTrainer):
+class BD3LMTrainer(MDLMTrainer):
 
     def __init__(
         self,

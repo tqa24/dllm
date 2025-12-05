@@ -661,7 +661,7 @@ def test_a2d_staircase_attention_kvcache_equivalence(
         (A) in one full 8-token forward pass
         (B) in two incremental passes (4 tokens → KV cache → 4 tokens)
     """
-    from dllm.core.samplers.bm3lm import build_staircase_attention_mask
+    from dllm.core.samplers.bd3lm import build_staircase_attention_mask
 
     torch.manual_seed(0)
     device = "cuda" if torch.cuda.is_available() else "cpu"

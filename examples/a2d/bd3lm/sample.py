@@ -1,5 +1,5 @@
 """
-python -u examples/a2d/bm3lm/sample.py --model_name_or_path "YOUR_MODEL_PATH"
+python -u examples/a2d/bd3lm/sample.py --model_name_or_path "YOUR_MODEL_PATH"
 """
 
 from dataclasses import dataclass
@@ -11,7 +11,7 @@ import dllm
 
 @dataclass
 class ScriptArguments:
-    model_name_or_path: str = "[TODO]"
+    model_name_or_path: str = "dllm-collection/Qwen3-0.6B-diffusion-bd3lm-v0.1"
     seed: int = 42
     visualize: bool = True
 
@@ -38,7 +38,7 @@ transformers.set_seed(script_args.seed)
 # Load model & tokenizer
 model = dllm.utils.get_model(model_args=script_args).eval()
 tokenizer = dllm.utils.get_tokenizer(model_args=script_args)
-sampler = dllm.core.samplers.BM3LMSampler(model=model, tokenizer=tokenizer)
+sampler = dllm.core.samplers.BD3LMSampler(model=model, tokenizer=tokenizer)
 terminal_visualizer = dllm.utils.TerminalVisualizer(tokenizer=tokenizer)
 
 # --- Example 1: Batch sampling ---

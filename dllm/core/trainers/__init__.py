@@ -1,3 +1,3 @@
-from . import mdlm, bm3lm
+from . import bd3lm, mdlm
 from .mdlm import MDLMTrainer
-from .bm3lm import BM3LMTrainer
+from .bd3lm import BD3LMTrainer
