@@ -167,8 +167,8 @@ class MDLMSampler(BaseSampler):
                     un_x[unmasked_index] = mask_id
                     x_ = torch.cat([x, un_x], dim=0)
                     logits = self.model(
-                        x_, attention_mask=attention_mask
-                    ).logits  # Use attention mask here
+                        x_, attention_mask=attention_mask.repeat(2, 1)
+                    ).logits
                     logits, un_logits = torch.chunk(logits, 2, dim=0)
                     logits = un_logits + (cfg_scale + 1) * (logits - un_logits)
                 else:
@@ -358,8 +358,8 @@ class MDLMSampler(BaseSampler):
                     un_x[unmasked_index] = mask_id
                     x_ = torch.cat([x, un_x], dim=0)
                     logits = self.model(
-                        x_, attention_mask=attention_mask
-                    ).logits  # Use attention mask here
+                        x_, attention_mask=attention_mask.repeat(2, 1)
+                    ).logits
                     logits, un_logits = torch.chunk(logits, 2, dim=0)
                     logits = un_logits + (cfg_scale + 1) * (logits - un_logits)
                 else:
