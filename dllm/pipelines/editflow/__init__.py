@@ -1,3 +1,4 @@
+from . import utils
 from .models.bert.modelling_modernbert import (
     EditFlowModernBertConfig,
     EditFlowModernBertModel,
@@ -23,4 +24,5 @@ __all__ = [
     "EditFlowSamplerConfig",
     "EditFlowSampler",
     "EditFlowTrainer",
+    "utils",
 ]

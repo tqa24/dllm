@@ -1,3 +1,4 @@
+from . import utils
 from .models.configuration_dream import DreamConfig
 from .models.modeling_dream import DreamModel
 from .models.tokenization_dream import DreamTokenizer
@@ -11,4 +12,5 @@ __all__ = [
     "DreamSampler",
     "DreamSamplerConfig",
     "DreamTrainer",
+    "utils",
 ]
