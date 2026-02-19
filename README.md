@@ -25,6 +25,9 @@ Simple Diffusion Language Modeling
 
 
 ## News
+
+**[2026/02]** 📄 Checkout our **[`technical report`](assets/dLLM.pdf)**!
+
 **[2026/02] ⚡[`Fast-dLLM`](https://github.com/NVlabs/Fast-dLLM)**: We support accelerated inference and evaluation of  [LLaDA](https://arxiv.org/abs/2502.09992) and [Dream](https://arxiv.org/abs/2508.15487) with [Fast-dLLM](https://arxiv.org/abs/2505.22618) (cache, confidence-threshold decoding, and beyond). See [`examples/fastdllm`](/examples/fastdllm) for inference / evaluation instructions.
 
 **[2025/12] 🤗[`Tiny-A2D`](https://huggingface.co/collections/dllm-collection/tiny-a2d)**: We released a collection of **SOTA** small (0.5B/0.6B) diffusion models adapted from AR models, with fully open recipes for converting **ANY** AR model (e.g., Qwen, LLaMA, and GPT-2) into a diffusion model. See [`examples/a2d`](/examples/a2d) for training / inference / evaluation instructions.
